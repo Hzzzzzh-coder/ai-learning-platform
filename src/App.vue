@@ -426,13 +426,16 @@
             <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
               <div class="flex items-center justify-between mb-5">
                 <h2 class="text-sm font-black text-slate-800">学习闯关图</h2>
-                <button @click="cycleActiveSeries"
-                  class="flex items-center gap-1 text-xs bg-violet-50 hover:bg-violet-100 text-violet-600 px-2.5 py-1 rounded-full font-semibold transition-colors select-none">
-                  {{ activeSeriesData.tag }}
-                  <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
-                  </svg>
-                </button>
+                <select v-model="activeSeriesId"
+                  class="text-xs text-violet-600 bg-violet-50 border border-violet-100 rounded-full
+                         px-3 py-1 font-semibold outline-none cursor-pointer
+                         hover:bg-violet-100 transition-colors appearance-none pr-7"
+                  :style="seriesSelectStyle">
+                  <option v-for="s in myEnrolledCourses.filter(c => c.type === 'series')"
+                    :key="s.id" :value="s.id">
+                    {{ s.title }}
+                  </option>
+                </select>
               </div>
               <div class="space-y-0">
                 <div v-for="(node, i) in activeSeriesData.nodes" :key="node.id" class="relative">
@@ -491,29 +494,29 @@
             <div class="col-span-2 bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
               <div class="flex items-center justify-between mb-4">
                 <h2 class="text-sm font-black text-slate-800">在学课程</h2>
-                <button @click="switchView('profile')"
+                <button @click="goToProfileBasic()"
                   class="text-xs text-violet-500 font-semibold hover:text-violet-700 transition-colors">
                   查看全部 →
                 </button>
               </div>
 
               <!-- 空状态 -->
-              <div v-if="myEnrolledCourses.length === 0"
+              <div v-if="homeEnrolledCourses.length === 0"
                 class="flex flex-col items-center justify-center py-8 text-center">
                 <p class="text-3xl mb-2">📭</p>
                 <p class="text-sm font-bold text-slate-500">暂无在学课程</p>
-                <p class="text-xs text-slate-400 mt-1 mb-4">快去课程中心探索吧</p>
+                <p class="text-xs text-slate-400 mt-1 mb-4">快去课程中心选一门吧</p>
                 <button @click="switchView('courses')"
                   class="px-4 py-2 bg-violet-600 text-white text-xs font-black rounded-xl hover:bg-violet-700 transition-colors">
                   去选课 →
                 </button>
               </div>
 
-              <!-- 课程列表 -->
+              <!-- 课程列表（基础课 + 进行中的系列子节点，最多 4 条） -->
               <div v-else class="space-y-1">
-                <div v-for="c in myEnrolledCourses.slice(0, 3)" :key="c.id"
+                <div v-for="c in homeEnrolledCourses.slice(0, 4)" :key="c.id"
                   class="flex items-center gap-3 px-3 py-3 rounded-2xl transition-all group cursor-pointer hover:bg-slate-50"
-                  @click="switchView('profile')">
+                  @click="goToProfileBasic()">
                   <!-- 左侧科目图标 -->
                   <div class="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl"
                     :class="c.color==='purple' ? 'bg-violet-50'
@@ -525,8 +528,17 @@
                   </div>
                   <!-- 标题 + 进度条 -->
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-bold text-slate-800 truncate leading-snug">{{ c.title }}</p>
-                    <p class="text-xs text-slate-400 mt-0.5 truncate">{{ c.teacher }}</p>
+                    <div class="flex items-center gap-1.5 leading-snug">
+                      <p class="text-sm font-bold text-slate-800 truncate">{{ c.title }}</p>
+                      <span v-if="c.type === 'series-node'"
+                        class="flex-shrink-0 text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full font-bold whitespace-nowrap">
+                        进行中
+                      </span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-0.5 truncate">
+                      <span v-if="c.type === 'series-node'">{{ c.seriesTitle }}</span>
+                      <span v-else>{{ c.teacher }}</span>
+                    </p>
                     <div class="flex items-center gap-2 mt-2">
                       <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <div class="h-full rounded-full transition-all duration-700"
@@ -683,7 +695,7 @@
                   <span class="text-xs text-slate-400">+{{ Math.floor(course.views / 100) }} 在学</span>
                 </div>
                 <!-- AI Buttons -->
-                <div v-if="courseTab === 'basic'" class="grid grid-cols-3 gap-1.5">
+                <div v-if="courseTab === 'basic'" class="grid grid-cols-3 gap-1.5 mb-2">
                   <button @click.stop="openAIModal('preview', course)"
                     class="py-1.5 text-xs font-bold rounded-xl bg-violet-50 text-violet-600 hover:bg-violet-100 border border-violet-100 transition-colors">
                     🔮 预习
@@ -697,6 +709,14 @@
                     🧠 精读
                   </button>
                 </div>
+                <!-- 加入学习按钮 -->
+                <button @click.stop="enrollBasicCourse(course)"
+                  class="w-full py-2 text-xs font-black rounded-2xl transition-all"
+                  :class="isBasicEnrolled(course.id)
+                    ? 'bg-emerald-50 text-emerald-600 cursor-default'
+                    : 'bg-violet-600 text-white hover:bg-violet-700 active:scale-95'">
+                  {{ isBasicEnrolled(course.id) ? '✓ 已加入学习计划' : '＋ 加入学习计划' }}
+                </button>
               </div>
             </div>
           </div>
@@ -1536,7 +1556,7 @@
               <div class="flex items-center gap-2">
                 <h2 class="text-sm font-black text-slate-800">我的课程</h2>
                 <span class="text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full font-bold">
-                  {{ myEnrolledCourses.length }} 门
+                  {{ profileEnrolledList.length }} 门
                 </span>
               </div>
               <button @click="switchView('courses')"
@@ -1545,20 +1565,34 @@
               </button>
             </div>
 
+            <!-- 胶囊 Tab 切换器 -->
+            <div class="flex items-center gap-1 bg-slate-100 rounded-2xl p-1 w-fit mb-4">
+              <button v-for="tab in [{v:'basic',l:'📚 基础课'},{v:'series',l:'🗺️ 系列课'}]" :key="tab.v"
+                @click="profileCourseTab = tab.v"
+                class="px-3 py-1.5 text-xs font-black rounded-xl transition-all"
+                :class="profileCourseTab === tab.v
+                  ? 'bg-white shadow-sm text-slate-800'
+                  : 'text-slate-400 hover:text-slate-600'">
+                {{ tab.l }}
+              </button>
+            </div>
+
             <!-- 空状态 -->
-            <div v-if="myEnrolledCourses.length === 0" class="text-center py-14">
+            <div v-if="profileEnrolledList.length === 0" class="text-center py-10">
               <p class="text-4xl mb-3">📭</p>
-              <p class="text-sm font-bold text-slate-500 mb-1">暂无在学课程</p>
-              <p class="text-xs text-slate-400 mb-4">去课程中心选择感兴趣的课程吧</p>
+              <p class="text-sm font-bold text-slate-500 mb-1">
+                {{ profileCourseTab === 'basic' ? '暂无已加入的基础课' : '暂无已加入的系列课' }}
+              </p>
+              <p class="text-xs text-slate-400 mb-4">去课程中心探索吧</p>
               <button @click="switchView('courses')"
                 class="px-5 py-2 bg-violet-600 text-white text-xs font-black rounded-xl hover:bg-violet-700 transition-colors">
                 探索课程中心
               </button>
             </div>
 
-            <!-- 全量课程列表 -->
+            <!-- 课程列表（按 tab 过滤） -->
             <div v-else class="space-y-1">
-              <div v-for="c in myEnrolledCourses" :key="c.id"
+              <div v-for="c in profileEnrolledList" :key="c.id"
                 class="flex items-center gap-4 px-3 py-3.5 rounded-2xl transition-all group cursor-pointer hover:bg-slate-50">
                 <!-- 左侧图标 -->
                 <div class="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl"
@@ -1917,11 +1951,11 @@ const courseSeries = [
     tags: ['体系化', '重难点'], avatar: ['A','B','C'],
     description: '从代数基础到统计概率，5 大关卡系统突破初中数学核心知识体系',
     nodes: [
-      { id:'n11', title:'代数基础',     status:'completed',   xp:100, duration:'25 分钟' },
-      { id:'n12', title:'方程与不等式', status:'completed',   xp:120, duration:'30 分钟' },
-      { id:'n13', title:'函数初步',     status:'in-progress', xp:150, duration:'35 分钟' },
-      { id:'n14', title:'几何证明',     status:'locked',      xp:180, duration:'40 分钟' },
-      { id:'n15', title:'统计与概率',   status:'locked',      xp:200, duration:'30 分钟' },
+      { id:'n11', title:'代数基础',     status:'completed',   xp:100, duration:'25 分钟', courseData:{ tags:['代数','基础'],    rating:4.9, views:8200, progress:100 } },
+      { id:'n12', title:'方程与不等式', status:'completed',   xp:120, duration:'30 分钟', courseData:{ tags:['方程','不等式'], rating:4.8, views:7100, progress:100 } },
+      { id:'n13', title:'函数初步',     status:'in-progress', xp:150, duration:'35 分钟', courseData:{ tags:['函数','图像'],   rating:4.9, views:6800, progress:38  } },
+      { id:'n14', title:'几何证明',     status:'locked',      xp:180, duration:'40 分钟', courseData:{ tags:['几何','证明'],   rating:4.7, views:5300, progress:0   } },
+      { id:'n15', title:'统计与概率',   status:'locked',      xp:200, duration:'30 分钟', courseData:{ tags:['统计','概率'],   rating:4.8, views:4900, progress:0   } },
     ],
   },
   {
@@ -1930,10 +1964,10 @@ const courseSeries = [
     tags: ['语法', '词汇'], avatar: ['G','H','I'],
     description: '词法→句法→篇章，层层递进系统掌握初中英语语法全貌',
     nodes: [
-      { id:'n21', title:'词性与词法', status:'completed',   xp:80,  duration:'20 分钟' },
-      { id:'n22', title:'时态与语态', status:'in-progress', xp:120, duration:'30 分钟' },
-      { id:'n23', title:'从句精讲',   status:'locked',      xp:150, duration:'35 分钟' },
-      { id:'n24', title:'写作应用',   status:'locked',      xp:180, duration:'40 分钟' },
+      { id:'n21', title:'词性与词法', status:'completed',   xp:80,  duration:'20 分钟', courseData:{ tags:['词法','词汇'],  rating:4.8, views:6500, progress:100 } },
+      { id:'n22', title:'时态与语态', status:'in-progress', xp:120, duration:'30 分钟', courseData:{ tags:['时态','语态'],  rating:4.7, views:5900, progress:52  } },
+      { id:'n23', title:'从句精讲',   status:'locked',      xp:150, duration:'35 分钟', courseData:{ tags:['从句','语法'],  rating:4.8, views:4800, progress:0   } },
+      { id:'n24', title:'写作应用',   status:'locked',      xp:180, duration:'40 分钟', courseData:{ tags:['写作','应用'],  rating:4.7, views:3900, progress:0   } },
     ],
   },
   {
@@ -1942,27 +1976,47 @@ const courseSeries = [
     tags: ['阅读', '写作'], avatar: ['D','E','F'],
     description: '精读方法论 + 题型模板，5 关递进直击阅读理解满分策略',
     nodes: [
-      { id:'n31', title:'阅读方法论',   status:'completed',   xp:80,  duration:'20 分钟' },
-      { id:'n32', title:'记叙文精讲',   status:'completed',   xp:100, duration:'25 分钟' },
-      { id:'n33', title:'说明文技巧',   status:'completed',   xp:120, duration:'25 分钟' },
-      { id:'n34', title:'议论文解析',   status:'in-progress', xp:150, duration:'30 分钟' },
-      { id:'n35', title:'写作综合训练', status:'locked',      xp:200, duration:'40 分钟' },
+      { id:'n31', title:'阅读方法论',   status:'completed',   xp:80,  duration:'20 分钟', courseData:{ tags:['阅读','方法'],  rating:4.9, views:9200, progress:100 } },
+      { id:'n32', title:'记叙文精讲',   status:'completed',   xp:100, duration:'25 分钟', courseData:{ tags:['记叙文','解析'], rating:4.8, views:8100, progress:100 } },
+      { id:'n33', title:'说明文技巧',   status:'completed',   xp:120, duration:'25 分钟', courseData:{ tags:['说明文','技巧'], rating:4.8, views:7600, progress:100 } },
+      { id:'n34', title:'议论文解析',   status:'in-progress', xp:150, duration:'30 分钟', courseData:{ tags:['议论文','解析'], rating:4.9, views:7200, progress:45  } },
+      { id:'n35', title:'写作综合训练', status:'locked',      xp:200, duration:'40 分钟', courseData:{ tags:['写作','综合'],  rating:4.8, views:5100, progress:0   } },
     ],
   },
 ]
 
-// 已加入套系 ids
-const myEnrolledSeriesIds = ref(['s1', 's2', 's3'])
-// 派生已加入套系对象列表
-const myEnrolledCourses = computed(() =>
-  courseSeries.filter(s => myEnrolledSeriesIds.value.includes(s.id))
-)
+// ── Enrollment State ──
+// 单体课 ids（basic + interest 统一用 type:'basic' 标记）
+const myEnrolledBasicIds = ref([201, 202])
+// 套系 ids
+const myEnrolledSeriesIds = ref(['s1', 's3'])
+
+// _allBasicMap 在 allCourses 定义后填充（见下方）
+const _allBasicMap = {}
+
+// 合并后的已加入列表（每项含 type 字段）
+const myEnrolledCourses = computed(() => {
+  const basics = myEnrolledBasicIds.value
+    .map(id => _allBasicMap[id])
+    .filter(Boolean)
+    .map(c => ({ ...c, type: 'basic' }))
+  const series = courseSeries
+    .filter(s => myEnrolledSeriesIds.value.includes(s.id))
+    .map(s => ({ ...s, type: 'series' }))
+  return [...basics, ...series]
+})
 
 // 当前闯关图显示的套系
 const activeSeriesId = ref('s1')
 const activeSeriesData = computed(() =>
   courseSeries.find(s => s.id === activeSeriesId.value) ?? courseSeries[0]
 )
+const seriesSelectStyle = {
+  backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%237c3aed' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%2F%3E%3C%2Fsvg%3E\")",
+  backgroundRepeat: 'no-repeat',
+  backgroundPosition: 'right 8px center',
+  backgroundSize: '12px 12px',
+}
 function cycleActiveSeries() {
   const enrolled = myEnrolledCourses.value
   if (enrolled.length < 2) return
@@ -1970,15 +2024,21 @@ function cycleActiveSeries() {
   activeSeriesId.value = enrolled[(idx + 1) % enrolled.length].id
 }
 
-function seriesProgress(series) {
-  const done = series.nodes.filter(n => n.status === 'completed').length
-  return Math.round(done / series.nodes.length * 100)
+function seriesProgress(c) {
+  if (c.type === 'basic' || c.type === 'series-node' || !c.nodes) return c.progress ?? 0
+  const done = c.nodes.filter(n => n.status === 'completed').length
+  return Math.round(done / c.nodes.length * 100)
 }
-function continueSeriesNode(series) {
-  const node = series.nodes.find(n => n.status === 'in-progress') ?? series.nodes[0]
-  openVideoPlayer({ ...series, title: `${series.title} · ${node.title}` })
+function continueSeriesNode(c) {
+  if (c.type === 'series-node') {
+    openVideoPlayer({ ...c._series, title: `${c.seriesTitle} · ${c.title}` }); return
+  }
+  if (c.type === 'basic' || !c.nodes) { openVideoPlayer(c); return }
+  const node = c.nodes.find(n => n.status === 'in-progress') ?? c.nodes[0]
+  openVideoPlayer({ ...c, title: `${c.title} · ${node.title}` })
 }
 
+// 套系 enrollment
 function isEnrolled(seriesId) {
   return myEnrolledSeriesIds.value.includes(seriesId)
 }
@@ -1986,6 +2046,57 @@ function enrollSeries(series) {
   if (isEnrolled(series.id)) return
   myEnrolledSeriesIds.value.push(series.id)
   activeSeriesId.value = series.id
+}
+
+// 单体课 enrollment
+function isBasicEnrolled(courseId) {
+  return myEnrolledBasicIds.value.includes(courseId)
+}
+function enrollBasicCourse(course) {
+  if (isBasicEnrolled(course.id)) return
+  myEnrolledBasicIds.value.push(course.id)
+}
+
+// 个人中心课程 tab
+const profileCourseTab = ref('basic')
+
+// 首页：单体基础课 + 每个已加入套系课当前 in-progress 节点（展开为独立卡片）
+const homeEnrolledCourses = computed(() => {
+  const basics = myEnrolledCourses.value.filter(c => c.type === 'basic')
+  const seriesNodes = myEnrolledCourses.value
+    .filter(c => c.type === 'series')
+    .map(series => {
+      const activeNode = series.nodes?.find(n => n.status === 'in-progress')
+      if (!activeNode) return null
+      return {
+        id: `${series.id}_active`,
+        title: activeNode.title,
+        subject: series.subject,
+        teacher: series.teacher,
+        color: series.color,
+        type: 'series-node',
+        progress: activeNode.courseData?.progress ?? 35,
+        tags: activeNode.courseData?.tags ?? [],
+        seriesTitle: series.title,
+        nodeXp: activeNode.xp,
+        nodeDuration: activeNode.duration,
+        _series: series,
+        _node: activeNode,
+      }
+    })
+    .filter(Boolean)
+  return [...basics, ...seriesNodes]
+})
+
+// 个人中心按 tab 过滤
+const profileEnrolledList = computed(() =>
+  myEnrolledCourses.value.filter(c => c.type === profileCourseTab.value)
+)
+
+// 首页"查看全部 →" 跳转个人中心并定位到基础课 tab
+function goToProfileBasic() {
+  profileCourseTab.value = 'basic'
+  switchView('profile')
 }
 
 // 套系预览弹窗
@@ -2155,29 +2266,35 @@ const reviewTabs = [
 const allCourses = {
   '小学': {
     basic: [
-      { id: 101, title: '小学数学图解思维课', subject: '数学', teacher: '刘慧老师', rating: 4.9, views: 15420, tags: ['基础', '趣味'], color: 'purple', avatar: ['赵','钱','孙'] },
-      { id: 102, title: '语文字词大闯关', subject: '语文', teacher: '陈婷老师', rating: 4.8, views: 12300, tags: ['识字','阅读'], color: 'green', avatar: ['李','周','吴'] },
-      { id: 103, title: '英语启蒙会话训练', subject: '英语', teacher: 'Ms. Wang', rating: 4.7, views: 9800, tags: ['口语','趣味'], color: 'blue', avatar: ['郑','王','冯'] },
+      { id: 101, title: '小学数学图解思维课', subject: '数学', teacher: '刘慧老师', rating: 4.9, views: 15420, tags: ['基础', '趣味'], color: 'purple', avatar: ['赵','钱','孙'], progress: 30 },
+      { id: 102, title: '语文字词大闯关', subject: '语文', teacher: '陈婷老师', rating: 4.8, views: 12300, tags: ['识字','阅读'], color: 'green', avatar: ['李','周','吴'], progress: 55 },
+      { id: 103, title: '英语启蒙会话训练', subject: '英语', teacher: 'Ms. Wang', rating: 4.7, views: 9800, tags: ['口语','趣味'], color: 'blue', avatar: ['郑','王','冯'], progress: 20 },
     ],
     interest: [
-      { id: 104, title: '儿童创意绘画营', subject: '美术', teacher: '赵敏老师', rating: 4.9, views: 8900, tags: ['绘画','创意'], color: 'orange', avatar: ['陈','楚','魏'] },
-      { id: 105, title: '趣味编程入门（Scratch）', subject: '编程', teacher: '李涛老师', rating: 4.8, views: 7600, tags: ['Scratch','逻辑'], color: 'teal', avatar: ['蒋','沈','韩'] },
+      { id: 104, title: '儿童创意绘画营', subject: '美术', teacher: '赵敏老师', rating: 4.9, views: 8900, tags: ['绘画','创意'], color: 'orange', avatar: ['陈','楚','魏'], progress: 15 },
+      { id: 105, title: '趣味编程入门（Scratch）', subject: '编程', teacher: '李涛老师', rating: 4.8, views: 7600, tags: ['Scratch','逻辑'], color: 'teal', avatar: ['蒋','沈','韩'], progress: 0 },
     ]
   },
   '初中': {
     basic: [
-      { id: 201, title: '初中数学函数专题精讲', subject: '数学', teacher: '张华老师', rating: 4.9, views: 32840, tags: ['重难点','突破'], color: 'purple', avatar: ['A','B','C'] },
-      { id: 202, title: '语文现代文阅读技巧', subject: '语文', teacher: '王芳老师', rating: 4.8, views: 28100, tags: ['阅读','写作'], color: 'green', avatar: ['D','E','F'] },
-      { id: 203, title: '英语语法全解析', subject: '英语', teacher: '李明老师', rating: 4.7, views: 25600, tags: ['语法','词汇'], color: 'blue', avatar: ['G','H','I'] },
+      { id: 201, title: '初中数学函数专题精讲', subject: '数学', teacher: '张华老师', rating: 4.9, views: 32840, tags: ['重难点','突破'], color: 'purple', avatar: ['A','B','C'], progress: 65 },
+      { id: 202, title: '语文现代文阅读技巧', subject: '语文', teacher: '王芳老师', rating: 4.8, views: 28100, tags: ['阅读','写作'], color: 'green', avatar: ['D','E','F'], progress: 40 },
+      { id: 203, title: '英语语法全解析', subject: '英语', teacher: '李明老师', rating: 4.7, views: 25600, tags: ['语法','词汇'], color: 'blue', avatar: ['G','H','I'], progress: 80 },
     ],
     interest: [
-      { id: 204, title: '历史文化探秘', subject: '历史', teacher: '吴天浩老师', rating: 4.6, views: 18200, tags: ['通史','趣闻'], color: 'orange', avatar: ['J','K','L'] },
-      { id: 205, title: '科学实验探究', subject: '科学', teacher: '赵辉老师', rating: 4.8, views: 22000, tags: ['实验','探究'], color: 'teal', avatar: ['M','N','O'] },
+      { id: 204, title: '历史文化探秘', subject: '历史', teacher: '吴天浩老师', rating: 4.6, views: 18200, tags: ['通史','趣闻'], color: 'orange', avatar: ['J','K','L'], progress: 25 },
+      { id: 205, title: '科学实验探究', subject: '科学', teacher: '赵辉老师', rating: 4.8, views: 22000, tags: ['实验','探究'], color: 'teal', avatar: ['M','N','O'], progress: 10 },
     ]
   },
 }
 allCourses['高中'] = allCourses['初中']
 allCourses['大学'] = allCourses['初中']
+
+// 填充全量单体课平铺索引（allCourses 定义完成后执行）
+Object.values(allCourses).forEach(grade => {
+  ;(grade.basic    || []).forEach(c => { _allBasicMap[c.id] = c })
+  ;(grade.interest || []).forEach(c => { _allBasicMap[c.id] = c })
+})
 
 const currentCourses = computed(() => allCourses[currentGrade.value] || allCourses['初中'])
 
