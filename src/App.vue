@@ -1541,9 +1541,9 @@
               <p class="text-xl font-black" :class="stat.color">{{ stat.value }}</p>
               <p class="text-xs text-slate-400 mt-1 font-medium">{{ stat.label }}</p>
               <div class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 border mt-2"
-                :class="stat.pct <= 15 ? 'bg-emerald-50 border-emerald-100' : stat.pct <= 35 ? 'bg-amber-50 border-amber-100' : 'bg-slate-50 border-slate-100'">
+                :class="stat.pct <= 20 ? 'bg-emerald-50 border-emerald-100' : stat.pct <= 60 ? 'bg-amber-50 border-amber-100' : 'bg-slate-50 border-slate-100'">
                 <span class="text-xs font-black"
-                  :class="stat.pct <= 15 ? 'text-emerald-600' : stat.pct <= 35 ? 'text-amber-500' : 'text-slate-400'">
+                  :class="stat.pct <= 20 ? 'text-emerald-600' : stat.pct <= 60 ? 'text-amber-500' : 'text-slate-400'">
                   前 {{ stat.pct }}%
                 </span>
               </div>
@@ -2235,10 +2235,10 @@ const microCourses = [
 ]
 
 // ── Home Stats ──
-// 返回"位于班级前 xx%"：严格比我高的人 +1 即为我的名次，名次/总人数=前百分比
+// 返回"位于班级前 xx%"：全班最高时为 0%，否则用名次/总人数估算
 function classPct(myVal, dist) {
   const above = dist.filter(v => v > myVal).length
-  return Math.max(1, Math.round((above + 1) / (dist.length + 1) * 100))
+  return above === 0 ? 0 : Math.round((above + 1) / (dist.length + 1) * 100)
 }
 const _daysDist   = [12,18,22,25,28,30,33,36,40,42,44,47,50,55,60,65]
 const _levelDist  = [4,5,6,7,7,8,8,9,9,10,10,11,11,12,13,14]
