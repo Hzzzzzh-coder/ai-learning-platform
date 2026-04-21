@@ -458,36 +458,75 @@
             <div class="col-span-2 bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
               <div class="flex items-center justify-between mb-4">
                 <h2 class="text-sm font-black text-slate-800">在学课程</h2>
-                <button @click="switchView('courses')" class="text-xs text-violet-500 font-semibold hover:text-violet-700 transition-colors">查看全部 →</button>
+                <button @click="switchView('profile')"
+                  class="text-xs text-violet-500 font-semibold hover:text-violet-700 transition-colors">
+                  查看全部 →
+                </button>
               </div>
-              <div class="space-y-3">
-                <div v-for="c in ongoingCourses" :key="c.id"
-                  class="flex items-center gap-4 p-4 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50 transition-all group cursor-pointer">
-                  <div class="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl"
-                    :class="c.color==='purple' ? 'bg-violet-50' : c.color==='blue' ? 'bg-blue-50' : 'bg-emerald-50'">
-                    {{ c.color==='purple' ? '📐' : c.color==='blue' ? '📚' : '✍️' }}
+
+              <!-- 空状态 -->
+              <div v-if="myEnrolledCourses.length === 0"
+                class="flex flex-col items-center justify-center py-8 text-center">
+                <p class="text-3xl mb-2">📭</p>
+                <p class="text-sm font-bold text-slate-500">暂无在学课程</p>
+                <p class="text-xs text-slate-400 mt-1 mb-4">快去课程中心探索吧</p>
+                <button @click="switchView('courses')"
+                  class="px-4 py-2 bg-violet-600 text-white text-xs font-black rounded-xl hover:bg-violet-700 transition-colors">
+                  去选课 →
+                </button>
+              </div>
+
+              <!-- 课程列表 -->
+              <div v-else class="space-y-1">
+                <div v-for="c in myEnrolledCourses.slice(0, 3)" :key="c.id"
+                  class="flex items-center gap-3 px-3 py-3 rounded-2xl transition-all group cursor-pointer hover:bg-slate-50"
+                  @click="switchView('profile')">
+                  <!-- 左侧科目图标 -->
+                  <div class="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl"
+                    :class="c.color==='purple' ? 'bg-violet-50'
+                          : c.color==='blue'   ? 'bg-blue-50'
+                          : c.color==='green'  ? 'bg-emerald-50'
+                          : c.color==='orange' ? 'bg-orange-50'
+                                               : 'bg-teal-50'">
+                    {{ getCourseEmoji(c.subject) }}
                   </div>
+                  <!-- 标题 + 进度条 -->
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-bold text-slate-800 truncate">{{ c.title }}</p>
-                    <p class="text-xs text-slate-400 mt-0.5">{{ c.teacher }}</p>
+                    <p class="text-sm font-bold text-slate-800 truncate leading-snug">{{ c.title }}</p>
+                    <p class="text-xs text-slate-400 mt-0.5 truncate">{{ c.teacher }}</p>
                     <div class="flex items-center gap-2 mt-2">
-                      <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <div class="h-full rounded-full transition-all duration-700"
-                          :class="c.color==='purple' ? 'bg-gradient-to-r from-violet-400 to-purple-500' : c.color==='blue' ? 'bg-gradient-to-r from-blue-400 to-cyan-400' : 'bg-gradient-to-r from-emerald-400 to-teal-500'"
-                          :style="{ width: c.progress + '%' }"></div>
+                          :class="c.color==='purple' ? 'bg-gradient-to-r from-violet-400 to-purple-500'
+                                : c.color==='blue'   ? 'bg-gradient-to-r from-blue-400 to-cyan-400'
+                                : c.color==='orange' ? 'bg-gradient-to-r from-orange-400 to-amber-400'
+                                : c.color==='teal'   ? 'bg-gradient-to-r from-teal-400 to-cyan-400'
+                                :                     'bg-gradient-to-r from-emerald-400 to-teal-500'"
+                          :style="{ width: c.progress + '%' }">
+                        </div>
                       </div>
-                      <span class="text-xs font-bold text-slate-500 w-8">{{ c.progress }}%</span>
+                      <span class="text-xs font-bold text-slate-400 flex-shrink-0 w-8 text-right">{{ c.progress }}%</span>
                     </div>
                   </div>
-                  <!-- Ring -->
+                  <!-- SVG 环形进度 -->
                   <svg class="w-10 h-10 -rotate-90 flex-shrink-0" viewBox="0 0 36 36">
                     <circle cx="18" cy="18" r="15" fill="none" stroke="#f1f5f9" stroke-width="3"/>
                     <circle cx="18" cy="18" r="15" fill="none"
-                      :stroke="c.color==='purple' ? '#8b5cf6' : c.color==='blue' ? '#3b82f6' : '#10b981'"
+                      :stroke="c.color==='purple' ? '#8b5cf6'
+                             : c.color==='blue'   ? '#3b82f6'
+                             : c.color==='orange' ? '#f97316'
+                             : c.color==='teal'   ? '#14b8a6'
+                                                  : '#10b981'"
                       stroke-width="3" stroke-linecap="round"
                       :stroke-dasharray="`${c.progress * 0.942} 94.2`"/>
                   </svg>
-                  <button class="px-3 py-2 text-xs font-bold rounded-xl bg-violet-100 text-violet-700 opacity-0 group-hover:opacity-100 transition-all hover:bg-violet-200 flex-shrink-0">继续</button>
+                  <!-- Hover 淡入继续按钮 -->
+                  <button @click.stop="openVideoPlayer(c)"
+                    class="px-3 py-1.5 text-xs font-black rounded-xl bg-violet-100 text-violet-700
+                           opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0
+                           transition-all duration-200 hover:bg-violet-200 flex-shrink-0 whitespace-nowrap">
+                    继续 →
+                  </button>
                 </div>
               </div>
             </div>
@@ -625,6 +664,14 @@
                     🧠 精读
                   </button>
                 </div>
+                <!-- 加入学习按钮 -->
+                <button @click.stop="enrollCourse(course)"
+                  class="mt-2.5 w-full py-2 text-xs font-black rounded-2xl transition-all"
+                  :class="isEnrolled(course.id)
+                    ? 'bg-emerald-50 text-emerald-600 cursor-default'
+                    : 'bg-violet-600 text-white hover:bg-violet-700 active:scale-95'">
+                  {{ isEnrolled(course.id) ? '✓ 已加入学习' : '＋ 加入学习' }}
+                </button>
               </div>
             </div>
           </div>
@@ -1358,6 +1405,127 @@
 
         </div>
 
+        <!-- ══ VIEW 7: 个人中心 ══ -->
+        <div v-else-if="currentView === 'profile'" class="p-6 space-y-6">
+
+          <!-- 用户信息横幅 -->
+          <div class="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-3xl p-6 text-white relative overflow-hidden">
+            <div class="absolute -top-8 -right-8 w-40 h-40 bg-white/5 rounded-full"></div>
+            <div class="absolute -bottom-6 left-1/4 w-28 h-28 bg-white/5 rounded-full"></div>
+            <div class="relative flex items-center gap-5">
+              <div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl font-black border border-white/20 flex-shrink-0">
+                {{ user.avatar }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <h1 class="text-xl font-black">{{ user.name }}</h1>
+                <p class="text-white/70 text-sm mt-0.5">{{ className || '未加入班级' }} · Lv {{ user.level }}</p>
+                <div class="flex items-center gap-5 mt-3 text-sm flex-wrap">
+                  <span class="text-white/80">📚 在学 <b class="text-white">{{ myEnrolledCourses.length }}</b> 门</span>
+                  <span class="text-white/80">🔥 连续 <b class="text-white">{{ user.streak }}</b> 天</span>
+                  <span class="text-white/80">📅 累计 <b class="text-white">{{ user.totalStudyDays }}</b> 天</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 统计数据行 -->
+          <div class="grid grid-cols-4 gap-4">
+            <div v-for="stat in homeStats" :key="stat.label"
+              class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 text-center">
+              <p class="text-xl font-black" :class="stat.color">{{ stat.value }}</p>
+              <p class="text-xs text-slate-400 mt-1 font-medium">{{ stat.label }}</p>
+              <div class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 border mt-2"
+                :class="stat.pct <= 15 ? 'bg-emerald-50 border-emerald-100' : stat.pct <= 35 ? 'bg-amber-50 border-amber-100' : 'bg-slate-50 border-slate-100'">
+                <span class="text-xs font-black"
+                  :class="stat.pct <= 15 ? 'text-emerald-600' : stat.pct <= 35 ? 'text-amber-500' : 'text-slate-400'">
+                  前 {{ stat.pct }}%
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 我的课程全列表 -->
+          <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <h2 class="text-sm font-black text-slate-800">我的课程</h2>
+                <span class="text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full font-bold">
+                  {{ myEnrolledCourses.length }} 门
+                </span>
+              </div>
+              <button @click="switchView('courses')"
+                class="text-xs text-violet-500 font-semibold hover:text-violet-700 transition-colors">
+                去选课 →
+              </button>
+            </div>
+
+            <!-- 空状态 -->
+            <div v-if="myEnrolledCourses.length === 0" class="text-center py-14">
+              <p class="text-4xl mb-3">📭</p>
+              <p class="text-sm font-bold text-slate-500 mb-1">暂无在学课程</p>
+              <p class="text-xs text-slate-400 mb-4">去课程中心选择感兴趣的课程吧</p>
+              <button @click="switchView('courses')"
+                class="px-5 py-2 bg-violet-600 text-white text-xs font-black rounded-xl hover:bg-violet-700 transition-colors">
+                探索课程中心
+              </button>
+            </div>
+
+            <!-- 全量课程列表 -->
+            <div v-else class="space-y-1">
+              <div v-for="c in myEnrolledCourses" :key="c.id"
+                class="flex items-center gap-4 px-3 py-3.5 rounded-2xl transition-all group cursor-pointer hover:bg-slate-50">
+                <!-- 左侧图标 -->
+                <div class="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl"
+                  :class="c.color==='purple' ? 'bg-violet-50'
+                        : c.color==='blue'   ? 'bg-blue-50'
+                        : c.color==='green'  ? 'bg-emerald-50'
+                        : c.color==='orange' ? 'bg-orange-50'
+                                             : 'bg-teal-50'">
+                  {{ getCourseEmoji(c.subject) }}
+                </div>
+                <!-- 标题 + 进度条 -->
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-bold text-slate-800 truncate">{{ c.title }}</p>
+                  <p class="text-xs text-slate-400 mt-0.5 truncate">{{ c.teacher }}</p>
+                  <div class="flex items-center gap-2 mt-2">
+                    <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div class="h-full rounded-full transition-all duration-700"
+                        :class="c.color==='purple' ? 'bg-gradient-to-r from-violet-400 to-purple-500'
+                              : c.color==='blue'   ? 'bg-gradient-to-r from-blue-400 to-cyan-400'
+                              : c.color==='orange' ? 'bg-gradient-to-r from-orange-400 to-amber-400'
+                              : c.color==='teal'   ? 'bg-gradient-to-r from-teal-400 to-cyan-400'
+                              :                     'bg-gradient-to-r from-emerald-400 to-teal-500'"
+                        :style="{ width: c.progress + '%' }">
+                      </div>
+                    </div>
+                    <span class="text-xs font-bold text-slate-400 w-8 text-right flex-shrink-0">{{ c.progress }}%</span>
+                  </div>
+                </div>
+                <!-- SVG 环形进度 -->
+                <svg class="w-10 h-10 -rotate-90 flex-shrink-0" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="#f1f5f9" stroke-width="3"/>
+                  <circle cx="18" cy="18" r="15" fill="none"
+                    :stroke="c.color==='purple' ? '#8b5cf6'
+                           : c.color==='blue'   ? '#3b82f6'
+                           : c.color==='orange' ? '#f97316'
+                           : c.color==='teal'   ? '#14b8a6'
+                                                : '#10b981'"
+                    stroke-width="3" stroke-linecap="round"
+                    :stroke-dasharray="`${c.progress * 0.942} 94.2`"/>
+                </svg>
+                <!-- Hover 淡入继续按钮 -->
+                <button @click.stop="openVideoPlayer(c)"
+                  class="px-3 py-1.5 text-xs font-black rounded-xl bg-violet-100 text-violet-700
+                         opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0
+                         transition-all duration-200 hover:bg-violet-200 flex-shrink-0 whitespace-nowrap">
+                  继续 →
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
       </main>
 
       <!-- ── Right Sidebar ── -->
@@ -1505,6 +1673,10 @@ const navItems = [
     view: 'schedule', label: '我的课表',
     icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>'
   },
+  {
+    view: 'profile', label: '个人中心',
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>'
+  },
 ]
 
 // ── Daily Tasks ──
@@ -1550,12 +1722,26 @@ const learningPath = [
   { id: 5, title: '统计与概率', status: 'locked', xp: 200 },
 ]
 
-// ── Ongoing Courses ──
-const ongoingCourses = [
-  { id: 1, title: '初中数学-函数专题精讲', teacher: '张华老师', progress: 65, color: 'purple' },
-  { id: 2, title: '英语语法精讲', teacher: '李明老师', progress: 40, color: 'blue' },
-  { id: 3, title: '语文现代文阅读', teacher: '王芳老师', progress: 80, color: 'green' },
-]
+// ── My Enrolled Courses ──
+const myEnrolledCourses = ref([
+  { id: 201, title: '初中数学函数专题精讲', subject: '数学', teacher: '张华老师', progress: 65, color: 'purple' },
+  { id: 202, title: '语文现代文阅读技巧',   subject: '语文', teacher: '王芳老师', progress: 80, color: 'green'  },
+])
+
+function isEnrolled(courseId) {
+  return myEnrolledCourses.value.some(c => c.id === courseId)
+}
+function enrollCourse(course) {
+  if (isEnrolled(course.id)) return
+  myEnrolledCourses.value.push({
+    id: course.id,
+    title: course.title,
+    subject: course.subject,
+    teacher: course.teacher,
+    progress: 0,
+    color: course.color,
+  })
+}
 
 // ── Calendar ──
 const EVENT_COLOR_MAP = {
