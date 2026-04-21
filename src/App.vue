@@ -424,31 +424,64 @@
           <div class="grid grid-cols-3 gap-5">
             <!-- Learning Path -->
             <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
-              <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center justify-between mb-5">
                 <h2 class="text-sm font-black text-slate-800">学习闯关图</h2>
-                <span class="text-xs bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full font-semibold">数学专线</span>
+                <button @click="cycleActiveSeries"
+                  class="flex items-center gap-1 text-xs bg-violet-50 hover:bg-violet-100 text-violet-600 px-2.5 py-1 rounded-full font-semibold transition-colors select-none">
+                  {{ activeSeriesData.tag }}
+                  <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
               </div>
-              <div class="space-y-1">
-                <div v-for="(node, i) in learningPath" :key="node.id" class="relative">
-                  <div v-if="i < learningPath.length - 1"
-                    class="absolute left-5 top-10 w-0.5 h-5 z-0"
-                    :class="node.status === 'done' ? 'bg-violet-200' : 'bg-slate-150'"></div>
-                  <div class="relative z-10 flex items-center gap-3 py-1">
-                    <div class="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all"
-                      :class="{
-                        'bg-violet-500 shadow-lg shadow-violet-200 ring-4 ring-violet-100': node.status === 'done',
-                        'bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-orange-200 ring-4 ring-orange-100': node.status === 'current',
-                        'bg-slate-100': node.status === 'locked'
-                      }">
-                      <span v-if="node.status==='done'" class="text-white font-black text-sm">✓</span>
-                      <span v-else-if="node.status==='current'" class="text-lg">▶</span>
-                      <span v-else class="text-slate-300 text-sm">🔒</span>
+              <div class="space-y-0">
+                <div v-for="(node, i) in activeSeriesData.nodes" :key="node.id" class="relative">
+                  <!-- 虚线连接线 -->
+                  <div v-if="i < activeSeriesData.nodes.length - 1"
+                    class="absolute left-[19px] top-10 w-px h-6 z-0"
+                    :style="{ borderLeft: '1.5px dashed', borderColor: node.status==='completed' ? '#c4b5fd' : '#e2e8f0' }">
+                  </div>
+                  <div class="relative z-10 flex items-center gap-3 py-1.5">
+                    <!-- completed -->
+                    <div v-if="node.status==='completed'"
+                      class="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0
+                             bg-violet-500 shadow-lg shadow-violet-200 ring-4 ring-violet-100">
+                      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                      </svg>
                     </div>
-                    <div>
-                      <p class="text-sm font-semibold" :class="node.status==='locked' ? 'text-slate-400' : 'text-slate-800'">{{ node.title }}</p>
-                      <p class="text-xs text-slate-400 font-medium">+{{ node.xp }} XP</p>
+                    <!-- in-progress -->
+                    <div v-else-if="node.status==='in-progress'"
+                      class="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0
+                             bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-orange-200 ring-4 ring-orange-100">
+                      <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
                     </div>
-                    <span v-if="node.status==='current'" class="ml-auto text-xs bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full font-semibold">进行中</span>
+                    <!-- locked -->
+                    <div v-else
+                      class="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 bg-slate-100">
+                      <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                      </svg>
+                    </div>
+                    <!-- 文字 -->
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-semibold leading-snug"
+                        :class="node.status==='locked' ? 'text-slate-400' : 'text-slate-800'">
+                        {{ node.title }}
+                      </p>
+                      <p class="text-xs font-medium mt-0.5"
+                        :class="node.status==='locked' ? 'text-slate-300' : 'text-violet-400'">
+                        +{{ node.xp }} XP · {{ node.duration }}
+                      </p>
+                    </div>
+                    <!-- 进行中胶囊 -->
+                    <span v-if="node.status==='in-progress'"
+                      class="flex-shrink-0 text-xs bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full font-semibold">
+                      进行中
+                    </span>
                   </div>
                 </div>
               </div>
@@ -502,10 +535,10 @@
                                 : c.color==='orange' ? 'bg-gradient-to-r from-orange-400 to-amber-400'
                                 : c.color==='teal'   ? 'bg-gradient-to-r from-teal-400 to-cyan-400'
                                 :                     'bg-gradient-to-r from-emerald-400 to-teal-500'"
-                          :style="{ width: c.progress + '%' }">
+                          :style="{ width: seriesProgress(c) + '%' }">
                         </div>
                       </div>
-                      <span class="text-xs font-bold text-slate-400 flex-shrink-0 w-8 text-right">{{ c.progress }}%</span>
+                      <span class="text-xs font-bold text-slate-400 flex-shrink-0 w-8 text-right">{{ seriesProgress(c) }}%</span>
                     </div>
                   </div>
                   <!-- SVG 环形进度 -->
@@ -518,10 +551,10 @@
                              : c.color==='teal'   ? '#14b8a6'
                                                   : '#10b981'"
                       stroke-width="3" stroke-linecap="round"
-                      :stroke-dasharray="`${c.progress * 0.942} 94.2`"/>
+                      :stroke-dasharray="`${seriesProgress(c) * 0.942} 94.2`"/>
                   </svg>
                   <!-- Hover 淡入继续按钮 -->
-                  <button @click.stop="openVideoPlayer(c)"
+                  <button @click.stop="continueSeriesNode(c)"
                     class="px-3 py-1.5 text-xs font-black rounded-xl bg-violet-100 text-violet-700
                            opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0
                            transition-all duration-200 hover:bg-violet-200 flex-shrink-0 whitespace-nowrap">
@@ -592,8 +625,8 @@
             </button>
           </div>
 
-          <!-- Course Grid -->
-          <div class="grid grid-cols-3 gap-5">
+          <!-- Course Grid (basic / interest) -->
+          <div v-if="courseTab !== 'series'" class="grid grid-cols-3 gap-5">
             <div v-for="course in currentCourses[courseTab]" :key="course.id"
               class="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 group">
               <!-- Thumbnail -->
@@ -664,17 +697,70 @@
                     🧠 精读
                   </button>
                 </div>
-                <!-- 加入学习按钮 -->
-                <button @click.stop="enrollCourse(course)"
-                  class="mt-2.5 w-full py-2 text-xs font-black rounded-2xl transition-all"
-                  :class="isEnrolled(course.id)
-                    ? 'bg-emerald-50 text-emerald-600 cursor-default'
+              </div>
+            </div>
+          </div>
+
+          <!-- 套系课 Grid -->
+          <div v-if="courseTab === 'series'" class="grid grid-cols-3 gap-5">
+            <div v-for="series in courseSeries" :key="series.id"
+              class="rounded-3xl overflow-hidden cursor-pointer group transition-all duration-200 hover:-translate-y-1 bg-white"
+              style="box-shadow: 0 1px 3px rgba(0,0,0,.08), 6px 6px 0 #f1f5f9, 10px 10px 0 #e2e8f0"
+              @click="openSeriesModal(series)">
+              <!-- 封面 -->
+              <div class="h-32 flex flex-col items-center justify-center relative"
+                :class="{
+                  'bg-gradient-to-br from-violet-100 to-purple-100': series.color==='purple',
+                  'bg-gradient-to-br from-blue-100 to-cyan-100':    series.color==='blue',
+                  'bg-gradient-to-br from-emerald-100 to-teal-100': series.color==='green',
+                  'bg-gradient-to-br from-orange-100 to-amber-100': series.color==='orange',
+                  'bg-gradient-to-br from-teal-100 to-cyan-100':    series.color==='teal',
+                }">
+                <p class="text-4xl">{{ getCourseEmoji(series.subject) }}</p>
+                <div class="flex items-center gap-1 mt-2 bg-white/70 backdrop-blur-sm px-2.5 py-0.5 rounded-full">
+                  <span class="w-1.5 h-1.5 rounded-full bg-violet-400 flex-shrink-0"></span>
+                  <span class="text-xs font-black text-slate-600">{{ series.nodes.length }} 个闯关节点</span>
+                </div>
+                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all flex items-center justify-center">
+                  <div class="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-xl scale-90 group-hover:scale-100">
+                    <svg class="w-4 h-4 text-slate-700 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <!-- 卡片内容 -->
+              <div class="p-4">
+                <div class="flex items-center gap-1.5 mb-1.5">
+                  <span class="text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full font-bold">{{ series.tag }}</span>
+                  <span class="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">★ {{ series.rating }}</span>
+                </div>
+                <h3 class="text-sm font-black text-slate-800 leading-tight mb-1">{{ series.title }}</h3>
+                <p class="text-xs text-slate-400 mb-2">{{ series.teacher }}</p>
+                <p class="text-xs text-slate-500 line-clamp-2 mb-3">{{ series.description }}</p>
+                <!-- 已加入进度条 -->
+                <div v-if="isEnrolled(series.id)" class="mb-3">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs text-slate-400">学习进度</span>
+                    <span class="text-xs font-black text-violet-600">{{ seriesProgress(series) }}%</span>
+                  </div>
+                  <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full rounded-full bg-gradient-to-r from-violet-400 to-purple-500 transition-all duration-700"
+                      :style="{ width: seriesProgress(series) + '%' }"></div>
+                  </div>
+                </div>
+                <!-- 加入 / 已加入 按钮 -->
+                <button @click.stop="isEnrolled(series.id) ? openSeriesModal(series) : enrollSeries(series)"
+                  class="w-full py-2 text-xs font-black rounded-2xl transition-all"
+                  :class="isEnrolled(series.id)
+                    ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
                     : 'bg-violet-600 text-white hover:bg-violet-700 active:scale-95'">
-                  {{ isEnrolled(course.id) ? '✓ 已加入学习' : '＋ 加入学习' }}
+                  {{ isEnrolled(series.id) ? '✓ 已加入 · 查看路线' : '＋ 加入学习计划' }}
                 </button>
               </div>
             </div>
           </div>
+
         </div>
 
         <!-- ══ VIEW 3: Analytics ══ -->
@@ -1495,10 +1581,10 @@
                               : c.color==='orange' ? 'bg-gradient-to-r from-orange-400 to-amber-400'
                               : c.color==='teal'   ? 'bg-gradient-to-r from-teal-400 to-cyan-400'
                               :                     'bg-gradient-to-r from-emerald-400 to-teal-500'"
-                        :style="{ width: c.progress + '%' }">
+                        :style="{ width: seriesProgress(c) + '%' }">
                       </div>
                     </div>
-                    <span class="text-xs font-bold text-slate-400 w-8 text-right flex-shrink-0">{{ c.progress }}%</span>
+                    <span class="text-xs font-bold text-slate-400 w-8 text-right flex-shrink-0">{{ seriesProgress(c) }}%</span>
                   </div>
                 </div>
                 <!-- SVG 环形进度 -->
@@ -1511,10 +1597,10 @@
                            : c.color==='teal'   ? '#14b8a6'
                                                 : '#10b981'"
                     stroke-width="3" stroke-linecap="round"
-                    :stroke-dasharray="`${c.progress * 0.942} 94.2`"/>
+                    :stroke-dasharray="`${seriesProgress(c) * 0.942} 94.2`"/>
                 </svg>
                 <!-- Hover 淡入继续按钮 -->
-                <button @click.stop="openVideoPlayer(c)"
+                <button @click.stop="continueSeriesNode(c)"
                   class="px-3 py-1.5 text-xs font-black rounded-xl bg-violet-100 text-violet-700
                          opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0
                          transition-all duration-200 hover:bg-violet-200 flex-shrink-0 whitespace-nowrap">
@@ -1605,6 +1691,116 @@
 
     </div>
   </div>
+
+  <!-- ══ Series Preview Modal ══ -->
+  <Transition name="modal">
+    <div v-if="showSeriesModal && previewSeriesData"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      @click.self="showSeriesModal = false">
+      <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+
+        <!-- 头部 -->
+        <div class="p-6 pb-4 border-b border-slate-100">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-2xl">{{ getCourseEmoji(previewSeriesData.subject) }}</span>
+                <span class="text-xs bg-violet-100 text-violet-600 px-2.5 py-1 rounded-full font-bold">
+                  {{ previewSeriesData.tag }}
+                </span>
+                <span class="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">
+                  {{ previewSeriesData.nodes.length }} 个节点
+                </span>
+              </div>
+              <h3 class="text-base font-black text-slate-800">{{ previewSeriesData.title }}</h3>
+              <p class="text-xs text-slate-400 mt-0.5">{{ previewSeriesData.teacher }}</p>
+            </div>
+            <button @click="showSeriesModal = false"
+              class="text-slate-400 hover:text-slate-600 text-xl leading-none mt-1 flex-shrink-0">×</button>
+          </div>
+          <p class="text-xs text-slate-500 mt-3 leading-relaxed bg-slate-50 rounded-2xl p-3">
+            {{ previewSeriesData.description }}
+          </p>
+          <!-- 进度概览（已加入时显示） -->
+          <div v-if="isEnrolled(previewSeriesData.id)" class="mt-3 flex items-center gap-3">
+            <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div class="h-full rounded-full bg-gradient-to-r from-violet-400 to-purple-500 transition-all duration-700"
+                :style="{ width: seriesProgress(previewSeriesData) + '%' }"></div>
+            </div>
+            <span class="text-xs font-black text-violet-600 flex-shrink-0">
+              {{ seriesProgress(previewSeriesData) }}% 完成
+            </span>
+          </div>
+        </div>
+
+        <!-- 节点列表 -->
+        <div class="px-6 py-4 space-y-0 max-h-64 overflow-y-auto">
+          <div v-for="(node, i) in previewSeriesData.nodes" :key="node.id" class="relative">
+            <div v-if="i < previewSeriesData.nodes.length - 1"
+              class="absolute left-4 top-9 w-px h-4 z-0"
+              :style="{ borderLeft: '1.5px dashed', borderColor: node.status==='completed' ? '#c4b5fd' : '#e2e8f0' }">
+            </div>
+            <div class="relative z-10 flex items-center gap-3 py-2">
+              <!-- completed -->
+              <div v-if="node.status==='completed'"
+                class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0
+                       bg-violet-500 shadow-md shadow-violet-200">
+                <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                </svg>
+              </div>
+              <!-- in-progress -->
+              <div v-else-if="node.status==='in-progress'"
+                class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0
+                       bg-gradient-to-br from-amber-400 to-orange-500 shadow-md shadow-orange-200">
+                <svg class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </div>
+              <!-- locked -->
+              <div v-else
+                class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-slate-100">
+                <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold"
+                  :class="node.status==='locked' ? 'text-slate-400' : 'text-slate-800'">
+                  {{ node.title }}
+                </p>
+                <p class="text-xs text-slate-400">+{{ node.xp }} XP · {{ node.duration }}</p>
+              </div>
+              <span v-if="node.status==='in-progress'"
+                class="flex-shrink-0 text-xs bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full font-semibold">
+                进行中
+              </span>
+              <span v-else-if="node.status==='completed'"
+                class="flex-shrink-0 text-xs text-violet-400 font-bold">✓</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部按钮 -->
+        <div class="p-6 pt-4 border-t border-slate-100 flex gap-2">
+          <button @click="showSeriesModal = false"
+            class="flex-1 py-2.5 bg-slate-100 text-slate-600 font-black rounded-2xl text-sm hover:bg-slate-200 transition-colors">
+            关闭
+          </button>
+          <button @click="enrollSeries(previewSeriesData)"
+            class="flex-1 py-2.5 font-black rounded-2xl text-sm transition-all"
+            :class="isEnrolled(previewSeriesData.id)
+              ? 'bg-emerald-50 text-emerald-600 cursor-default'
+              : 'bg-violet-600 text-white hover:bg-violet-700 active:scale-95'">
+            {{ isEnrolled(previewSeriesData.id) ? '✓ 已加入学习计划' : '一键加入学习计划' }}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </Transition>
+
 </template>
 
 <script setup>
@@ -1713,34 +1909,94 @@ const activeLeaderboard = computed(() =>
   leaderboardTab.value === 'streak' ? streakLeaderboard : focusLeaderboard
 )
 
-// ── Learning Path ──
-const learningPath = [
-  { id: 1, title: '代数基础', status: 'done', xp: 100 },
-  { id: 2, title: '方程与不等式', status: 'done', xp: 120 },
-  { id: 3, title: '函数初步', status: 'current', xp: 150 },
-  { id: 4, title: '几何证明', status: 'locked', xp: 180 },
-  { id: 5, title: '统计与概率', status: 'locked', xp: 200 },
+// ── Course Series ──
+const courseSeries = [
+  {
+    id: 's1', title: '初中数学函数专线', subject: '数学', teacher: '张华老师',
+    color: 'purple', tag: '数学专线', rating: 4.9, views: 32840,
+    tags: ['体系化', '重难点'], avatar: ['A','B','C'],
+    description: '从代数基础到统计概率，5 大关卡系统突破初中数学核心知识体系',
+    nodes: [
+      { id:'n11', title:'代数基础',     status:'completed',   xp:100, duration:'25 分钟' },
+      { id:'n12', title:'方程与不等式', status:'completed',   xp:120, duration:'30 分钟' },
+      { id:'n13', title:'函数初步',     status:'in-progress', xp:150, duration:'35 分钟' },
+      { id:'n14', title:'几何证明',     status:'locked',      xp:180, duration:'40 分钟' },
+      { id:'n15', title:'统计与概率',   status:'locked',      xp:200, duration:'30 分钟' },
+    ],
+  },
+  {
+    id: 's2', title: '英语语法攻关体系', subject: '英语', teacher: '李明老师',
+    color: 'blue', tag: '英语专线', rating: 4.8, views: 25600,
+    tags: ['语法', '词汇'], avatar: ['G','H','I'],
+    description: '词法→句法→篇章，层层递进系统掌握初中英语语法全貌',
+    nodes: [
+      { id:'n21', title:'词性与词法', status:'completed',   xp:80,  duration:'20 分钟' },
+      { id:'n22', title:'时态与语态', status:'in-progress', xp:120, duration:'30 分钟' },
+      { id:'n23', title:'从句精讲',   status:'locked',      xp:150, duration:'35 分钟' },
+      { id:'n24', title:'写作应用',   status:'locked',      xp:180, duration:'40 分钟' },
+    ],
+  },
+  {
+    id: 's3', title: '语文现代文阅读体系', subject: '语文', teacher: '王芳老师',
+    color: 'green', tag: '语文专线', rating: 4.8, views: 28100,
+    tags: ['阅读', '写作'], avatar: ['D','E','F'],
+    description: '精读方法论 + 题型模板，5 关递进直击阅读理解满分策略',
+    nodes: [
+      { id:'n31', title:'阅读方法论',   status:'completed',   xp:80,  duration:'20 分钟' },
+      { id:'n32', title:'记叙文精讲',   status:'completed',   xp:100, duration:'25 分钟' },
+      { id:'n33', title:'说明文技巧',   status:'completed',   xp:120, duration:'25 分钟' },
+      { id:'n34', title:'议论文解析',   status:'in-progress', xp:150, duration:'30 分钟' },
+      { id:'n35', title:'写作综合训练', status:'locked',      xp:200, duration:'40 分钟' },
+    ],
+  },
 ]
 
-// ── My Enrolled Courses ──
-const myEnrolledCourses = ref([
-  { id: 201, title: '初中数学函数专题精讲', subject: '数学', teacher: '张华老师', progress: 65, color: 'purple' },
-  { id: 202, title: '语文现代文阅读技巧',   subject: '语文', teacher: '王芳老师', progress: 80, color: 'green'  },
-])
+// 已加入套系 ids
+const myEnrolledSeriesIds = ref(['s1', 's2', 's3'])
+// 派生已加入套系对象列表
+const myEnrolledCourses = computed(() =>
+  courseSeries.filter(s => myEnrolledSeriesIds.value.includes(s.id))
+)
 
-function isEnrolled(courseId) {
-  return myEnrolledCourses.value.some(c => c.id === courseId)
+// 当前闯关图显示的套系
+const activeSeriesId = ref('s1')
+const activeSeriesData = computed(() =>
+  courseSeries.find(s => s.id === activeSeriesId.value) ?? courseSeries[0]
+)
+function cycleActiveSeries() {
+  const enrolled = myEnrolledCourses.value
+  if (enrolled.length < 2) return
+  const idx = enrolled.findIndex(s => s.id === activeSeriesId.value)
+  activeSeriesId.value = enrolled[(idx + 1) % enrolled.length].id
 }
-function enrollCourse(course) {
-  if (isEnrolled(course.id)) return
-  myEnrolledCourses.value.push({
-    id: course.id,
-    title: course.title,
-    subject: course.subject,
-    teacher: course.teacher,
-    progress: 0,
-    color: course.color,
-  })
+
+function seriesProgress(series) {
+  const done = series.nodes.filter(n => n.status === 'completed').length
+  return Math.round(done / series.nodes.length * 100)
+}
+function continueSeriesNode(series) {
+  const node = series.nodes.find(n => n.status === 'in-progress') ?? series.nodes[0]
+  openVideoPlayer({ ...series, title: `${series.title} · ${node.title}` })
+}
+
+function isEnrolled(seriesId) {
+  return myEnrolledSeriesIds.value.includes(seriesId)
+}
+function enrollSeries(series) {
+  if (isEnrolled(series.id)) return
+  myEnrolledSeriesIds.value.push(series.id)
+  activeSeriesId.value = series.id
+}
+
+// 套系预览弹窗
+const showSeriesModal  = ref(false)
+const previewSeriesId  = ref(null)
+const previewSeriesData = computed(() =>
+  courseSeries.find(s => s.id === previewSeriesId.value) ?? null
+)
+function openSeriesModal(series) {
+  previewSeriesId.value = series.id
+  showSeriesModal.value = true
 }
 
 // ── Calendar ──
@@ -1882,13 +2138,14 @@ const homeStats = computed(() => [
   { value: user.totalStudyDays, label: '累计打卡天数', color: 'text-violet-600', pct: classPct(user.totalStudyDays, _daysDist) },
   { value: `Lv ${user.level}`,  label: '当前等级',     color: 'text-emerald-500', pct: classPct(user.level, _levelDist) },
   { value: user.streak,         label: '当前连胜天数', color: 'text-orange-500', pct: classPct(user.streak, _streakDist) },
-  { value: 3,                   label: '在学课程数',   color: 'text-blue-500',   pct: classPct(3, _courseDist) },
+  { value: myEnrolledCourses.value.length, label: '在学课程数', color: 'text-blue-500', pct: classPct(myEnrolledCourses.value.length, _courseDist) },
 ])
 
 // ── Course Data ──
 const courseTabs = [
-  { value: 'basic', label: '📚 基础学科' },
+  { value: 'basic',    label: '📚 基础学科' },
   { value: 'interest', label: '🌟 兴趣拓展' },
+  { value: 'series',   label: '🗺️ 体系化套系课' },
 ]
 const reviewTabs = [
   { value: 'targeted', label: '📌 针对性复习' },
