@@ -359,7 +359,8 @@
       <!-- ── Main Content ── -->
       <main :class="currentView === 'schedule'
         ? 'flex-1 overflow-hidden flex flex-col'
-        : 'flex-1 overflow-y-auto'">
+        : 'flex-1 overflow-y-auto'"
+        style="scrollbar-width: none; -ms-overflow-style: none;">
 
         <!-- ══ VIEW 1: Home Dashboard ══ -->
         <div v-if="currentView === 'home'" class="p-6 space-y-5">
@@ -371,8 +372,8 @@
             <div class="absolute top-4 right-32 w-20 h-20 bg-white/5 rounded-full"></div>
             <div class="relative z-10 flex items-center justify-between gap-8">
               <div>
-                <p class="text-violet-200 text-sm font-semibold mb-2">🌟 本周名师推荐</p>
-                <h1 class="text-3xl font-black text-white mb-3 leading-tight">
+                <p class="text-violet-200 text-sm font-semibold mb-3">🌟 本周名师推荐</p>
+                <h1 class="text-3xl font-black text-white mb-5 leading-tight">
                   学习不是冲刺，<br>而是一场马拉松。
                 </h1>
                 <p class="text-violet-200 text-sm mb-6 max-w-sm leading-relaxed">
@@ -401,7 +402,7 @@
 
           
           <!-- Stats Row -->
-          <div class="grid grid-cols-4 gap-4">
+          <div class="grid grid-cols-4 gap-8">
             <div v-for="stat in homeStats" :key="stat.label"
               class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 text-center hover:shadow-md transition-shadow group relative overflow-hidden">
               <!-- bg accent strip -->
@@ -514,7 +515,7 @@
 
               <!-- 课程列表（基础课 + 进行中的系列子节点，最多 4 条） -->
               <div v-else class="space-y-1">
-                <div v-for="c in homeEnrolledCourses.slice(0, 4)" :key="c.id"
+                <div v-for="c in homeEnrolledCourses.slice(0, 3)" :key="c.id"
                   class="flex items-center gap-3 px-3 py-3 rounded-2xl transition-all group cursor-pointer hover:bg-slate-50"
                   @click="goToProfileBasic()">
                   <!-- 左侧科目图标 -->
@@ -577,45 +578,6 @@
             </div>
           </div>
 
-          <!-- ── 今日课程 Quick-View ── -->
-          <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-2">
-                <span class="text-base">📅</span>
-                <h2 class="text-sm font-black text-slate-800">今日课程 · 周一</h2>
-                <span v-if="className" class="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-bold">{{ className }}</span>
-              </div>
-              <button @click="switchView('schedule')"
-                class="flex items-center gap-1.5 text-xs font-bold text-violet-500 hover:text-violet-700 transition-colors group">
-                查看完整课表
-                <span class="group-hover:translate-x-0.5 transition-transform">→</span>
-              </button>
-            </div>
-            <div class="flex gap-3 overflow-x-auto pb-1">
-              <div v-for="ev in dayEvents(0)" :key="ev.id"
-                class="flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-2xl border cursor-pointer hover:shadow-md transition-all"
-                :style="{
-                  borderColor: (EVENT_COLOR_MAP[ev.colorKey]?.hex || '#8b5cf6') + '30',
-                  backgroundColor: EVENT_COLOR_MAP[ev.colorKey]?.light || '#ede9fe',
-                }"
-                @click="switchView('schedule')">
-                <div class="w-1 self-stretch rounded-full flex-shrink-0"
-                  :style="{ backgroundColor: EVENT_COLOR_MAP[ev.colorKey]?.hex }"></div>
-                <div>
-                  <p class="text-xs font-black leading-tight"
-                    :style="{ color: EVENT_COLOR_MAP[ev.colorKey]?.text }">{{ ev.subject }}</p>
-                  <p class="text-xs opacity-60 font-mono mt-0.5"
-                    :style="{ color: EVENT_COLOR_MAP[ev.colorKey]?.text }">
-                    {{ String(ev.startHour).padStart(2,'0') }}:{{ String(ev.startMin).padStart(2,'0') }} · {{ ev.teacher }}
-                  </p>
-                </div>
-              </div>
-              <button @click="openAddEvent(0, 16, 0)"
-                class="flex-shrink-0 flex items-center gap-2 px-4 py-3 rounded-2xl border-2 border-dashed border-slate-200 hover:border-violet-300 text-slate-400 hover:text-violet-500 text-xs font-bold transition-all">
-                + 添加课外课程
-              </button>
-            </div>
-          </div>
         </div>
 
         <!-- ══ VIEW 2: Course Center ══ -->
@@ -1649,7 +1611,7 @@
       </main>
 
       <!-- ── Right Sidebar ── -->
-      <aside class="w-64 flex-shrink-0 bg-white border-l border-slate-100 flex flex-col overflow-y-auto p-4 gap-5">
+      <aside class="w-64 flex-shrink-0 bg-white border-l border-slate-100 flex flex-col overflow-y-auto p-4 gap-5" style="scrollbar-width: none; -ms-overflow-style: none;">
 
         <!-- Daily Tasks -->
         <div>
@@ -1721,6 +1683,44 @@
             </div>
           </div>
         </div>
+
+        <div class="border-t border-slate-100"></div>
+
+        <!-- 今日课程（紧凑版） -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-sm font-black text-slate-800">📅 今日课程</h2>
+            <button @click="switchView('schedule')"
+              class="text-xs font-bold text-violet-500 hover:text-violet-700 transition-colors">
+              课表 →
+            </button>
+          </div>
+          <div class="space-y-1.5">
+            <div v-for="ev in dayEvents(0)" :key="ev.id"
+              class="flex items-center gap-2.5 px-3 py-2 rounded-xl border cursor-pointer hover:shadow-sm transition-all"
+              :style="{
+                borderColor: (EVENT_COLOR_MAP[ev.colorKey]?.hex || '#8b5cf6') + '30',
+                backgroundColor: EVENT_COLOR_MAP[ev.colorKey]?.light || '#ede9fe',
+              }"
+              @click="switchView('schedule')">
+              <div class="w-0.5 self-stretch rounded-full flex-shrink-0"
+                :style="{ backgroundColor: EVENT_COLOR_MAP[ev.colorKey]?.hex }"></div>
+              <div class="min-w-0">
+                <p class="text-xs font-black leading-tight truncate"
+                  :style="{ color: EVENT_COLOR_MAP[ev.colorKey]?.text }">{{ ev.subject }}</p>
+                <p class="text-xs opacity-60 font-mono"
+                  :style="{ color: EVENT_COLOR_MAP[ev.colorKey]?.text }">
+                  {{ String(ev.startHour).padStart(2,'0') }}:{{ String(ev.startMin).padStart(2,'0') }} · {{ ev.teacher }}
+                </p>
+              </div>
+            </div>
+            <button @click="openAddEvent(0, 16, 0)"
+              class="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-slate-200 hover:border-violet-300 text-slate-400 hover:text-violet-500 text-xs font-semibold transition-all">
+              + 添加课外课程
+            </button>
+          </div>
+        </div>
+
       </aside>
 
     </div>
@@ -2242,7 +2242,7 @@ function classPct(myVal, dist) {
 }
 const _daysDist   = [12,18,22,25,28,30,33,36,40,42,44,47,50,55,60,65]
 const _levelDist  = [4,5,6,7,7,8,8,9,9,10,10,11,11,12,13,14]
-const _streakDist = [1,1,2,2,3,3,4,4,5,5,6,6,7,8,9,10]
+const _streakDist = [32,28,6,5]
 const _courseDist = [1,1,1,2,2,2,2,3,3,3,3,4,4,4,5,6]
 
 const homeStats = computed(() => [
@@ -2472,6 +2472,8 @@ function takeSnapshot() {
 
 <style>
 * { box-sizing: border-box; }
+main::-webkit-scrollbar,
+aside::-webkit-scrollbar { display: none; }
 body { margin: 0; }
 
 /* ── Transitions ── */
