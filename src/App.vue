@@ -1226,7 +1226,7 @@
                 <div v-if="showExplanation && selectedAnswer !== null && selectedAnswer !== quizQuestions[currentQuizIndex].correct"
                   class="flex items-center gap-2 mb-3 px-3.5 py-2.5 bg-red-50 border border-red-100 rounded-xl text-xs font-semibold text-red-600">
                   <span>⚠️ 知识点未掌握，已自动收录至</span>
-                  <button @click="profileCourseTab='mistakes'; switchView('profile')"
+                  <button @click="profileTab='mistakes'; switchView('profile')"
                     class="text-violet-600 underline hover:text-violet-800 font-black transition-colors">
                     个人中心 · 错题本
                   </button>
@@ -1485,7 +1485,7 @@
         </div>
 
         <!-- ══ VIEW 7: 个人中心 ══ -->
-        <div v-else-if="currentView === 'profile'" class="p-6 space-y-6">
+        <div v-else-if="currentView === 'profile'" class="p-6 space-y-5">
 
           <!-- 用户信息横幅 -->
           <div class="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-3xl p-6 text-white relative overflow-hidden">
@@ -1507,222 +1507,466 @@
             </div>
           </div>
 
-          <!-- 统计数据行 -->
-          <div class="grid grid-cols-4 gap-4">
-            <div v-for="stat in homeStats" :key="stat.label"
-              class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 text-center">
-              <p class="text-xl font-black" :class="stat.color">{{ stat.value }}</p>
-              <p class="text-xs text-slate-400 mt-1 font-medium">{{ stat.label }}</p>
-              <div class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 border mt-2"
-                :class="stat.pct <= 20 ? 'bg-emerald-50 border-emerald-100' : stat.pct <= 60 ? 'bg-amber-50 border-amber-100' : 'bg-slate-50 border-slate-100'">
-                <span class="text-xs font-black"
-                  :class="stat.pct <= 20 ? 'text-emerald-600' : stat.pct <= 60 ? 'text-amber-500' : 'text-slate-400'">
-                  前 {{ stat.pct }}%
-                </span>
+          <!-- ── 统计 + 热力图 左右并排 ── -->
+          <div class="grid grid-cols-12 gap-9 items-stretch">
+
+            <!-- 左侧：2×2 统计四宫格 (5/12) -->
+            <div class="col-span-5 grid grid-cols-2 gap-3">
+              <div v-for="stat in homeStats" :key="stat.label"
+                class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 text-center
+                       flex flex-col items-center justify-center">
+                <p class="text-2xl font-black leading-none" :class="stat.color">{{ stat.value }}</p>
+                <p class="text-xs text-slate-400 mt-1.5 font-medium leading-snug">{{ stat.label }}</p>
+                <div class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 border mt-2.5"
+                  :class="stat.pct <= 20 ? 'bg-emerald-50 border-emerald-100'
+                        : stat.pct <= 60 ? 'bg-amber-50 border-amber-100'
+                        :                  'bg-slate-50 border-slate-100'">
+                  <span class="text-xs font-black"
+                    :class="stat.pct <= 20 ? 'text-emerald-600'
+                          : stat.pct <= 60 ? 'text-amber-500'
+                          :                  'text-slate-400'">
+                    前 {{ stat.pct }}%
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- 我的课程全列表 -->
-          <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-2">
-                <h2 class="text-sm font-black text-slate-800">
-                  {{ profileCourseTab === 'notes' ? '我的笔记' : profileCourseTab === 'mistakes' ? '错题本' : '我的课程' }}
-                </h2>
-                <span class="text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full font-bold">
-                  {{ profileCourseTab === 'notes' ? myNotes.length + ' 条' : profileCourseTab === 'mistakes' ? myMistakes.length + ' 题' : profileEnrolledList.length + ' 门' }}
-                </span>
+            <!-- 右侧：学情热力图 (7/12) -->
+            <div class="col-span-7 bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between">
+
+              <!-- 卡片头 -->
+              <div class="flex items-start justify-between mb-3">
+                <div>
+                  <h2 class="text-sm font-black text-slate-800">学情热力图</h2>
+                  <p class="text-xs text-slate-400 mt-0.5">最近 12 周学习打卡记录</p>
+                </div>
+                <div class="flex items-center gap-2.5 flex-shrink-0">
+                  <span class="flex items-center gap-1.5 text-xs text-slate-400">
+                    <span class="w-3 h-3 rounded-sm bg-rose-400 flex-shrink-0"></span>有错题
+                  </span>
+                  <span class="flex items-center gap-1.5 text-xs text-slate-400">
+                    <span class="w-3 h-3 rounded-sm bg-emerald-400 flex-shrink-0"></span>完美通关
+                  </span>
+                  <span class="flex items-center gap-1.5 text-xs text-slate-400">
+                    <span class="w-3 h-3 rounded-sm bg-slate-100 border border-slate-200 flex-shrink-0"></span>未做题
+                  </span>
+                </div>
               </div>
-              <button @click="switchView('courses')"
-                class="text-xs text-violet-500 font-semibold hover:text-violet-700 transition-colors">
-                去选课 →
-              </button>
-            </div>
 
-            <!-- 胶囊 Tab 切换器 -->
-            <div class="flex items-center gap-1 bg-slate-100 rounded-2xl p-1 mb-4">
-              <button v-for="tab in [{v:'basic',l:'📚 基础课'},{v:'series',l:'🗺️ 系列课'},{v:'notes',l:'📒 我的笔记'},{v:'mistakes',l:'❌ 错题本'}]" :key="tab.v"
-                @click="profileCourseTab = tab.v"
-                class="px-3 py-1.5 text-xs font-black rounded-xl transition-all whitespace-nowrap"
-                :class="profileCourseTab === tab.v
-                  ? 'bg-white shadow-sm text-slate-800'
-                  : 'text-slate-400 hover:text-slate-600'">
-                {{ tab.l }}
-              </button>
-            </div>
-
-            <!-- 课程列表（basic / series tab） -->
-            <template v-if="profileCourseTab === 'basic' || profileCourseTab === 'series'">
-              <div v-if="profileEnrolledList.length === 0" class="text-center py-10">
-                <p class="text-4xl mb-3">📭</p>
-                <p class="text-sm font-bold text-slate-500 mb-1">
-                  {{ profileCourseTab === 'basic' ? '暂无已加入的基础课' : '暂无已加入的系列课' }}
-                </p>
-                <p class="text-xs text-slate-400 mb-4">去课程中心探索吧</p>
-                <button @click="switchView('courses')"
-                  class="px-5 py-2 bg-violet-600 text-white text-xs font-black rounded-xl hover:bg-violet-700 transition-colors">
-                  探索课程中心
-                </button>
+              <!-- 月份标签行 -->
+              <div class="flex mb-1" style="padding-left: 22px;">
+                <div v-for="(label, wi) in heatmapWeekLabels" :key="wi"
+                  class="text-[10px] text-slate-400 font-medium leading-none"
+                  style="width: 19px; margin-right: 4px; overflow: visible; white-space: nowrap;">
+                  {{ label }}
+                </div>
               </div>
-              <div v-else class="space-y-1">
-                <div v-for="c in profileEnrolledList" :key="c.id"
-                  class="flex items-center gap-4 px-3 py-3.5 rounded-2xl transition-all group cursor-pointer hover:bg-slate-50">
-                  <div class="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl"
-                    :class="c.color==='purple' ? 'bg-violet-50'
-                          : c.color==='blue'   ? 'bg-blue-50'
-                          : c.color==='green'  ? 'bg-emerald-50'
-                          : c.color==='orange' ? 'bg-orange-50'
-                                               : 'bg-teal-50'">
-                    {{ getCourseEmoji(c.subject) }}
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-bold text-slate-800 truncate">{{ c.title }}</p>
-                    <p class="text-xs text-slate-400 mt-0.5 truncate">{{ c.teacher }}</p>
-                    <div class="flex items-center gap-2 mt-2">
-                      <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div class="h-full rounded-full transition-all duration-700"
-                          :class="c.color==='purple' ? 'bg-gradient-to-r from-violet-400 to-purple-500'
-                                : c.color==='blue'   ? 'bg-gradient-to-r from-blue-400 to-cyan-400'
-                                : c.color==='orange' ? 'bg-gradient-to-r from-orange-400 to-amber-400'
-                                : c.color==='teal'   ? 'bg-gradient-to-r from-teal-400 to-cyan-400'
-                                :                     'bg-gradient-to-r from-emerald-400 to-teal-500'"
-                          :style="{ width: seriesProgress(c) + '%' }">
-                        </div>
-                      </div>
-                      <span class="text-xs font-bold text-slate-400 w-8 text-right flex-shrink-0">{{ seriesProgress(c) }}%</span>
+
+              <!-- 热力图主体（居中） -->
+              <div class="flex items-start gap-2 flex-1">
+                <!-- 星期标签 -->
+                <div class="flex flex-col gap-[4px] text-[10px] text-slate-300 font-medium leading-none flex-shrink-0" style="padding-top: 1px;">
+                  <div style="height:15px" class="flex items-center">一</div>
+                  <div style="height:15px" class="flex items-center">二</div>
+                  <div style="height:15px" class="flex items-center">三</div>
+                  <div style="height:15px" class="flex items-center">四</div>
+                  <div style="height:15px" class="flex items-center">五</div>
+                  <div style="height:15px" class="flex items-center">六</div>
+                  <div style="height:15px" class="flex items-center">日</div>
+                </div>
+
+                <!-- 方格矩阵（7行 × 12列，列优先） -->
+                <div class="grid grid-rows-7 grid-flow-col gap-[4px]" style="overflow: visible;">
+                  <div v-for="(cell, idx) in heatmapData" :key="idx"
+                    @click="clickCell(cell)"
+                    class="w-[15px] h-[15px] rounded-sm cursor-pointer transition-all duration-150 hover:scale-125 relative group"
+                    :class="cell.status==='mistake' ? 'bg-rose-400 hover:bg-rose-500'
+                           : cell.status==='perfect' ? 'bg-emerald-400 hover:bg-emerald-500'
+                           :                           'bg-slate-100 hover:bg-slate-200 border border-slate-200/60'">
+                    <!-- Tooltip -->
+                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50
+                                opacity-0 group-hover:opacity-100 pointer-events-none
+                                transition-opacity duration-150 whitespace-nowrap
+                                bg-slate-800 text-white text-[10px] font-semibold
+                                px-2 py-1 rounded-lg shadow-lg">
+                      {{ cell.fullDate }}：{{ cell.status==='mistake' ? '有错题 🔴' : cell.status==='perfect' ? '完美通关 🟢' : '未做题 ⬜' }}
+                      <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
                     </div>
                   </div>
-                  <svg class="w-10 h-10 -rotate-90 flex-shrink-0" viewBox="0 0 36 36">
-                    <circle cx="18" cy="18" r="15" fill="none" stroke="#f1f5f9" stroke-width="3"/>
-                    <circle cx="18" cy="18" r="15" fill="none"
-                      :stroke="c.color==='purple' ? '#8b5cf6'
-                             : c.color==='blue'   ? '#3b82f6'
-                             : c.color==='orange' ? '#f97316'
-                             : c.color==='teal'   ? '#14b8a6'
-                                                  : '#10b981'"
-                      stroke-width="3" stroke-linecap="round"
-                      :stroke-dasharray="`${seriesProgress(c) * 0.942} 94.2`"/>
-                  </svg>
-                  <button @click.stop="continueSeriesNode(c)"
-                    class="px-3 py-1.5 text-xs font-black rounded-xl bg-violet-100 text-violet-700
-                           opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0
-                           transition-all duration-200 hover:bg-violet-200 flex-shrink-0 whitespace-nowrap">
-                    继续 →
+                </div>
+              </div>
+
+              <!-- 统计摘要行 -->
+              <div class="flex items-center gap-4 mt-3 pt-3 border-t border-slate-50">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-rose-400 flex-shrink-0"></span>
+                  <span class="text-xs text-slate-500">错题日 <b class="text-slate-700">{{ heatmapData.filter(c=>c.status==='mistake').length }}</b> 天</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
+                  <span class="text-xs text-slate-500">完美日 <b class="text-slate-700">{{ heatmapData.filter(c=>c.status==='perfect').length }}</b> 天</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-slate-200 flex-shrink-0"></span>
+                  <span class="text-xs text-slate-500">未学习 <b class="text-slate-700">{{ heatmapData.filter(c=>c.status==='empty').length }}</b> 天</span>
+                </div>
+                <span class="ml-auto text-xs text-slate-300 whitespace-nowrap">点击红格查看当日错题</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ── 内容 Tab 区 ── -->
+          <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+            <!-- Tab 导航栏（LeetCode 风格下划线式） -->
+            <div class="flex items-center border-b border-slate-100 px-5">
+              <button v-for="tab in [{v:'courses',l:'我的课程'},{v:'notes',l:'我的笔记'},{v:'mistakes',l:'全部错题'}]" :key="tab.v"
+                @click="profileTab = tab.v; if(tab.v !== 'mistakes') heatmapFilterDate = null"
+                class="px-4 py-3.5 text-sm font-bold transition-all border-b-2 -mb-px mr-2 whitespace-nowrap"
+                :class="profileTab === tab.v
+                  ? 'border-violet-500 text-violet-700'
+                  : 'border-transparent text-slate-400 hover:text-slate-700'">
+                {{ tab.l }}
+                <span v-if="tab.v === 'courses'" class="ml-1.5 text-xs bg-violet-100 text-violet-500 px-1.5 py-0.5 rounded-full font-black">
+                  {{ myEnrolledCourses.length }}
+                </span>
+                <span v-if="tab.v === 'notes'" class="ml-1.5 text-xs bg-blue-100 text-blue-500 px-1.5 py-0.5 rounded-full font-black">
+                  {{ myNotes.length }}
+                </span>
+                <span v-if="tab.v === 'mistakes'" class="ml-1.5 text-xs bg-rose-100 text-rose-500 px-1.5 py-0.5 rounded-full font-black">
+                  {{ myMistakes.length }}
+                </span>
+              </button>
+              <!-- 日期过滤徽章 -->
+              <Transition name="slide-up">
+                <div v-if="heatmapFilterDate && profileTab === 'mistakes'"
+                  class="ml-auto flex items-center gap-1.5 text-xs bg-rose-50 text-rose-600 border border-rose-100 px-2.5 py-1 rounded-full font-semibold">
+                  <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+                  {{ heatmapFilterDate }} 错题
+                  <button @click="heatmapFilterDate = null" class="ml-1 text-rose-400 hover:text-rose-600 font-black">✕</button>
+                </div>
+              </Transition>
+            </div>
+
+            <!-- 内容区 -->
+            <div class="p-5">
+
+              <!-- ▸ 我的课程 -->
+              <template v-if="profileTab === 'courses'">
+                <div v-if="myEnrolledCourses.length === 0" class="text-center py-10">
+                  <p class="text-4xl mb-3">📭</p>
+                  <p class="text-sm font-bold text-slate-500 mb-1">暂无已加入的课程</p>
+                  <button @click="switchView('courses')"
+                    class="mt-3 px-5 py-2 bg-violet-600 text-white text-xs font-black rounded-xl hover:bg-violet-700 transition-colors">
+                    去课程中心选课
                   </button>
                 </div>
-              </div>
-            </template>
-
-            <!-- 我的笔记 tab -->
-            <template v-else-if="profileCourseTab === 'notes'">
-              <div v-if="myNotes.length === 0" class="text-center py-10">
-                <p class="text-4xl mb-3">📒</p>
-                <p class="text-sm font-bold text-slate-500 mb-1">还没有 AI 笔记</p>
-                <p class="text-xs text-slate-400">在视频播放器中点击「📸 一键 AI 快照笔记」即可生成</p>
-              </div>
-              <div v-else class="grid grid-cols-2 gap-3">
-                <div v-for="note in myNotes" :key="note.id"
-                  class="rounded-2xl overflow-hidden cursor-pointer group transition-all hover:-translate-y-0.5 hover:shadow-md"
-                  style="box-shadow: 0 1px 3px rgba(0,0,0,.07)">
-                  <!-- 彩色头部 -->
-                  <div class="px-3.5 pt-3 pb-2.5"
-                    :class="note.tint==='violet'  ? 'bg-violet-50'
-                           : note.tint==='blue'   ? 'bg-blue-50'
-                           :                        'bg-emerald-50'">
-                    <div class="flex items-center justify-between mb-1">
-                      <span class="text-xs font-black"
-                        :class="note.tint==='violet'  ? 'text-violet-600'
-                               : note.tint==='blue'   ? 'text-blue-600'
-                               :                        'text-emerald-600'">
-                        🤖 AI 笔记
-                      </span>
-                      <span class="text-xs text-slate-400">{{ note.createdAt }}</span>
+                <div v-else class="space-y-1">
+                  <div v-for="c in myEnrolledCourses" :key="c.id"
+                    class="flex items-center gap-4 px-3 py-3.5 rounded-2xl transition-all group cursor-pointer hover:bg-slate-50">
+                    <div class="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl"
+                      :class="c.color==='purple' ? 'bg-violet-50'
+                            : c.color==='blue'   ? 'bg-blue-50'
+                            : c.color==='green'  ? 'bg-emerald-50'
+                            : c.color==='orange' ? 'bg-orange-50'
+                                                 : 'bg-teal-50'">
+                      {{ getCourseEmoji(c.subject) }}
                     </div>
-                    <p class="text-xs font-black text-slate-800 leading-snug line-clamp-2">{{ note.title }}</p>
-                    <p class="text-xs text-slate-400 mt-0.5 truncate">{{ note.course }}</p>
-                  </div>
-                  <!-- 摘要正文 -->
-                  <div class="px-3.5 py-3 bg-white">
-                    <p class="text-xs text-slate-500 leading-relaxed line-clamp-3">{{ note.summary }}</p>
-                    <div class="flex items-center gap-1.5 mt-2">
-                      <span class="text-xs px-2 py-0.5 rounded-full font-semibold"
-                        :class="note.tint==='violet'  ? 'bg-violet-100 text-violet-500'
-                               : note.tint==='blue'   ? 'bg-blue-100 text-blue-500'
-                               :                        'bg-emerald-100 text-emerald-500'">
-                        {{ note.time }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </template>
-
-            <!-- 错题本 tab -->
-            <template v-else-if="profileCourseTab === 'mistakes'">
-              <div v-if="myMistakes.length === 0" class="text-center py-10">
-                <p class="text-4xl mb-3">✅</p>
-                <p class="text-sm font-bold text-slate-500 mb-1">暂无错题记录</p>
-                <p class="text-xs text-slate-400">继续做题，知识掌握情况会自动记录在这里</p>
-              </div>
-              <div v-else class="space-y-3">
-                <div v-for="m in myMistakes" :key="m.id"
-                  class="rounded-2xl border border-slate-100 overflow-hidden">
-                  <!-- 题目头部 -->
-                  <div class="px-4 pt-3.5 pb-3 bg-red-50">
-                    <div class="flex items-center justify-between mb-1.5">
-                      <span class="text-xs font-bold text-red-500">{{ m.subject }} · {{ m.course }}</span>
-                      <span class="text-xs text-slate-400">{{ m.createdAt }}</span>
-                    </div>
-                    <p class="text-sm font-black text-slate-800">{{ m.question }}</p>
-                  </div>
-                  <!-- 选项区 -->
-                  <div class="px-4 py-3 bg-white space-y-1.5">
-                    <div v-for="(opt, idx) in m.options" :key="idx"
-                      class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold"
-                      :class="idx === m.correct ? 'bg-emerald-50 text-emerald-700'
-                             : idx === m.selected ? 'bg-red-50 text-red-600'
-                             : 'text-slate-400'">
-                      <!-- 图标 -->
-                      <span v-if="idx === m.correct" class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
-                        </svg>
-                      </span>
-                      <span v-else-if="idx === m.selected" class="w-4 h-4 rounded-full bg-red-400 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                      </span>
-                      <span v-else class="w-4 h-4 rounded-full border border-slate-200 flex-shrink-0"></span>
-                      <span>{{ ['A','B','C','D'][idx] }}. {{ opt }}</span>
-                      <span v-if="idx === m.selected && idx !== m.correct"
-                        class="ml-auto text-xs text-red-400 font-bold flex-shrink-0">我的答案</span>
-                      <span v-if="idx === m.correct"
-                        class="ml-auto text-xs text-emerald-500 font-bold flex-shrink-0">正确答案</span>
-                    </div>
-                  </div>
-                  <!-- AI 启发按钮 + 展开面板 -->
-                  <div class="px-4 pb-3.5 bg-white">
-                    <button @click="m.showAIHint = !m.showAIHint"
-                      class="w-full py-2 rounded-xl text-xs font-black transition-all"
-                      :class="m.showAIHint
-                        ? 'bg-violet-100 text-violet-700'
-                        : 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md shadow-violet-200/60 hover:shadow-lg hover:shadow-violet-300/60'">
-                      🤖 {{ m.showAIHint ? '收起 AI 启发思路' : 'AI 启发思路' }}
-                    </button>
-                    <Transition name="slide-up">
-                      <div v-if="m.showAIHint"
-                        class="mt-2.5 px-3.5 py-3 bg-violet-50 rounded-xl border border-violet-100 text-xs text-violet-800 leading-relaxed">
-                        {{ m.aiHint }}
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <p class="text-sm font-bold text-slate-800 truncate">{{ c.title }}</p>
+                        <span v-if="c.type==='series'" class="flex-shrink-0 text-[10px] bg-violet-100 text-violet-600 px-1.5 py-0.5 rounded-full font-bold">套系</span>
                       </div>
-                    </Transition>
+                      <p class="text-xs text-slate-400 mt-0.5 truncate">{{ c.teacher }}</p>
+                      <div class="flex items-center gap-2 mt-2">
+                        <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div class="h-full rounded-full transition-all duration-700"
+                            :class="c.color==='purple' ? 'bg-gradient-to-r from-violet-400 to-purple-500'
+                                  : c.color==='blue'   ? 'bg-gradient-to-r from-blue-400 to-cyan-400'
+                                  : c.color==='orange' ? 'bg-gradient-to-r from-orange-400 to-amber-400'
+                                  : c.color==='teal'   ? 'bg-gradient-to-r from-teal-400 to-cyan-400'
+                                  :                     'bg-gradient-to-r from-emerald-400 to-teal-500'"
+                            :style="{ width: seriesProgress(c) + '%' }"></div>
+                        </div>
+                        <span class="text-xs font-bold text-slate-400 w-8 text-right flex-shrink-0">{{ seriesProgress(c) }}%</span>
+                      </div>
+                    </div>
+                    <svg class="w-10 h-10 -rotate-90 flex-shrink-0" viewBox="0 0 36 36">
+                      <circle cx="18" cy="18" r="15" fill="none" stroke="#f1f5f9" stroke-width="3"/>
+                      <circle cx="18" cy="18" r="15" fill="none"
+                        :stroke="c.color==='purple' ? '#8b5cf6' : c.color==='blue' ? '#3b82f6' : c.color==='orange' ? '#f97316' : c.color==='teal' ? '#14b8a6' : '#10b981'"
+                        stroke-width="3" stroke-linecap="round"
+                        :stroke-dasharray="`${seriesProgress(c) * 0.942} 94.2`"/>
+                    </svg>
+                    <button @click.stop="continueSeriesNode(c)"
+                      class="px-3 py-1.5 text-xs font-black rounded-xl bg-violet-100 text-violet-700
+                             opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0
+                             transition-all duration-200 hover:bg-violet-200 flex-shrink-0 whitespace-nowrap">
+                      继续 →
+                    </button>
                   </div>
                 </div>
-              </div>
-            </template>
+              </template>
+
+              <!-- ▸ 我的笔记 -->
+              <template v-else-if="profileTab === 'notes'">
+                <div v-if="myNotes.length === 0" class="text-center py-10">
+                  <p class="text-4xl mb-3">📒</p>
+                  <p class="text-sm font-bold text-slate-500 mb-1">还没有 AI 笔记</p>
+                  <p class="text-xs text-slate-400">在视频播放器中点击「📸 一键 AI 快照笔记」即可生成</p>
+                </div>
+                <div v-else class="grid grid-cols-2 gap-3">
+                  <div v-for="note in myNotes" :key="note.id"
+                    @click="openNote(note)"
+                    class="rounded-2xl overflow-hidden cursor-pointer group transition-all hover:-translate-y-0.5"
+                    style="box-shadow: 0 1px 3px rgba(0,0,0,.07)">
+                    <div class="px-3.5 pt-3 pb-2.5"
+                      :class="note.tint==='violet' ? 'bg-violet-50' : note.tint==='blue' ? 'bg-blue-50' : 'bg-emerald-50'">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-black"
+                          :class="note.tint==='violet' ? 'text-violet-600' : note.tint==='blue' ? 'text-blue-600' : 'text-emerald-600'">
+                          🤖 AI 笔记
+                        </span>
+                        <span class="text-xs text-slate-400">{{ note.createdAt }}</span>
+                      </div>
+                      <p class="text-xs font-black text-slate-800 leading-snug line-clamp-2">{{ note.title }}</p>
+                      <p class="text-xs text-slate-400 mt-0.5 truncate">{{ note.course }}</p>
+                    </div>
+                    <div class="px-3.5 py-3 bg-white">
+                      <p class="text-xs text-slate-500 leading-relaxed line-clamp-3">{{ note.summary }}</p>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <!-- ▸ 全部错题（支持热力图日期过滤） -->
+              <template v-else-if="profileTab === 'mistakes'">
+                <div v-if="profileMistakesFiltered.length === 0" class="text-center py-10">
+                  <p class="text-4xl mb-3">{{ heatmapFilterDate ? '🔍' : '✅' }}</p>
+                  <p class="text-sm font-bold text-slate-500 mb-1">
+                    {{ heatmapFilterDate ? heatmapFilterDate + ' 当天没有错题记录' : '暂无错题记录' }}
+                  </p>
+                  <button v-if="heatmapFilterDate" @click="heatmapFilterDate = null"
+                    class="mt-2 text-xs text-violet-500 font-semibold hover:underline">
+                    清除过滤，查看全部
+                  </button>
+                </div>
+                <div v-else class="space-y-3">
+                  <div v-for="m in profileMistakesFiltered" :key="m.id"
+                    class="rounded-2xl border border-slate-100 overflow-hidden">
+                    <div class="px-4 pt-3.5 pb-3 bg-red-50">
+                      <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-xs font-bold text-red-500">{{ m.subject }} · {{ m.course }}</span>
+                        <span class="text-xs text-slate-400">{{ m.createdAt }}</span>
+                      </div>
+                      <p class="text-sm font-black text-slate-800">{{ m.question }}</p>
+                    </div>
+                    <div class="px-4 py-3 bg-white space-y-1.5">
+                      <div v-for="(opt, idx) in m.options" :key="idx"
+                        class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold"
+                        :class="idx === m.correct ? 'bg-emerald-50 text-emerald-700' : idx === m.selected ? 'bg-red-50 text-red-600' : 'text-slate-400'">
+                        <span v-if="idx === m.correct" class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                          <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                        </span>
+                        <span v-else-if="idx === m.selected" class="w-4 h-4 rounded-full bg-red-400 flex items-center justify-center flex-shrink-0">
+                          <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </span>
+                        <span v-else class="w-4 h-4 rounded-full border border-slate-200 flex-shrink-0"></span>
+                        <span>{{ ['A','B','C','D'][idx] }}. {{ opt }}</span>
+                        <span v-if="idx === m.selected && idx !== m.correct" class="ml-auto text-xs text-red-400 font-bold flex-shrink-0">我的答案</span>
+                        <span v-if="idx === m.correct" class="ml-auto text-xs text-emerald-500 font-bold flex-shrink-0">正确答案</span>
+                      </div>
+                    </div>
+                    <div class="px-4 pb-3.5 bg-white">
+                      <button @click="m.showAIHint = !m.showAIHint"
+                        class="w-full py-2 rounded-xl text-xs font-black transition-all"
+                        :class="m.showAIHint
+                          ? 'bg-violet-100 text-violet-700'
+                          : 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md shadow-violet-200/60 hover:shadow-lg'">
+                        🤖 {{ m.showAIHint ? '收起 AI 启发思路' : 'AI 启发思路' }}
+                      </button>
+                      <Transition name="slide-up">
+                        <div v-if="m.showAIHint"
+                          class="mt-2.5 px-3.5 py-3 bg-violet-50 rounded-xl border border-violet-100 text-xs text-violet-800 leading-relaxed">
+                          {{ m.aiHint }}
+                        </div>
+                      </Transition>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+            </div>
           </div>
 
+        </div>
+
+        <!-- ══ VIEW 8: 我的笔记 ══ -->
+        <div v-else-if="currentView === 'notes'" class="p-6 space-y-5">
+          <!-- 页头 -->
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 class="text-xl font-black text-slate-800">我的笔记</h1>
+              <p class="text-sm text-slate-400 mt-0.5">{{ myNotes.length }} 条 AI 智能笔记</p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <!-- 搜索框 -->
+              <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input v-model="notesSearch" placeholder="搜索笔记标题或内容…"
+                  class="pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-2xl
+                         w-52 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-transparent transition-all"/>
+              </div>
+              <!-- 标签筛选 -->
+              <div class="flex items-center gap-1">
+                <button v-for="tag in noteTagList" :key="tag"
+                  @click="notesTag = tag"
+                  class="px-3 py-1.5 text-xs font-bold rounded-full transition-all"
+                  :class="notesTag === tag
+                    ? 'bg-violet-600 text-white shadow-sm shadow-violet-200'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'">
+                  {{ tag }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 空状态 -->
+          <div v-if="filteredNotes.length === 0" class="flex flex-col items-center justify-center py-20">
+            <p class="text-5xl mb-4">📒</p>
+            <p class="text-sm font-bold text-slate-500">暂无匹配笔记</p>
+            <p class="text-xs text-slate-400 mt-1">在视频播放器中点击「📸 一键 AI 快照笔记」生成笔记</p>
+          </div>
+
+          <!-- 笔记 Grid -->
+          <div v-else class="grid grid-cols-3 gap-4">
+            <div v-for="note in filteredNotes" :key="note.id"
+              @click="openNote(note)"
+              class="rounded-3xl overflow-hidden cursor-pointer group transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+              style="box-shadow: 0 1px 3px rgba(0,0,0,.08)">
+              <!-- 模拟视频截图区 -->
+              <div class="h-28 relative overflow-hidden"
+                :class="note.tint==='violet' ? 'bg-gradient-to-br from-violet-100 to-purple-200'
+                       : note.tint==='blue'  ? 'bg-gradient-to-br from-blue-100 to-cyan-200'
+                       :                       'bg-gradient-to-br from-emerald-100 to-teal-200'">
+                <!-- 模拟板书线条 -->
+                <div class="absolute inset-4 opacity-20">
+                  <div class="h-px bg-current mb-3 w-3/4"></div>
+                  <div class="h-px bg-current mb-3 w-1/2"></div>
+                  <div class="h-px bg-current mb-3 w-2/3"></div>
+                </div>
+                <!-- 播放遮罩 -->
+                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/10">
+                  <div class="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center shadow-md">
+                    <svg class="w-4 h-4 text-slate-700 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="absolute bottom-2 left-3 flex items-center gap-1.5">
+                  <span class="text-xs font-black px-2 py-0.5 rounded-full bg-white/70 backdrop-blur-sm"
+                    :class="note.tint==='violet' ? 'text-violet-600'
+                           : note.tint==='blue'  ? 'text-blue-600'
+                           :                       'text-emerald-600'">
+                    🤖 AI 快照
+                  </span>
+                  <span class="text-xs text-white/90 bg-black/30 px-1.5 py-0.5 rounded-md font-mono">{{ note.time }}</span>
+                </div>
+              </div>
+              <!-- 卡片内容 -->
+              <div class="p-4 bg-white">
+                <p class="text-sm font-black text-slate-800 leading-tight mb-1 line-clamp-2">{{ note.title }}</p>
+                <p class="text-xs text-slate-400 mb-2 truncate">{{ note.course }}</p>
+                <p class="text-xs text-slate-500 leading-relaxed line-clamp-3">{{ note.summary }}</p>
+                <p class="text-xs text-slate-300 mt-2">{{ note.createdAt }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ VIEW 9: 错题本 ══ -->
+        <div v-else-if="currentView === 'mistakes'" class="p-6 space-y-5">
+          <!-- 页头 -->
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 class="text-xl font-black text-slate-800">错题本</h1>
+              <p class="text-sm text-slate-400 mt-0.5">{{ myMistakes.length }} 道错题已收录</p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input v-model="mistakesSearch" placeholder="搜索题目或课程…"
+                  class="pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-2xl
+                         w-52 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent transition-all"/>
+              </div>
+              <div class="flex items-center gap-1">
+                <button v-for="tag in mistakeTagList" :key="tag"
+                  @click="mistakesTag = tag"
+                  class="px-3 py-1.5 text-xs font-bold rounded-full transition-all"
+                  :class="mistakesTag === tag
+                    ? 'bg-rose-500 text-white shadow-sm shadow-rose-200'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'">
+                  {{ tag }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 空状态 -->
+          <div v-if="filteredMistakes.length === 0" class="flex flex-col items-center justify-center py-20">
+            <p class="text-5xl mb-4">✅</p>
+            <p class="text-sm font-bold text-slate-500">暂无匹配错题</p>
+            <p class="text-xs text-slate-400 mt-1">做题时的错误会自动收录至此</p>
+          </div>
+
+          <!-- 错题列表 -->
+          <div v-else class="space-y-4 max-w-2xl">
+            <div v-for="m in filteredMistakes" :key="m.id"
+              class="rounded-2xl border border-slate-100 overflow-hidden">
+              <div class="px-4 pt-3.5 pb-3 bg-red-50">
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="text-xs font-bold text-red-500">{{ m.subject }} · {{ m.course }}</span>
+                  <span class="text-xs text-slate-400">{{ m.createdAt }}</span>
+                </div>
+                <p class="text-sm font-black text-slate-800">{{ m.question }}</p>
+              </div>
+              <div class="px-4 py-3 bg-white space-y-1.5">
+                <div v-for="(opt, idx) in m.options" :key="idx"
+                  class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold"
+                  :class="idx === m.correct ? 'bg-emerald-50 text-emerald-700' : idx === m.selected ? 'bg-red-50 text-red-600' : 'text-slate-400'">
+                  <span v-if="idx === m.correct" class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                  </span>
+                  <span v-else-if="idx === m.selected" class="w-4 h-4 rounded-full bg-red-400 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                  </span>
+                  <span v-else class="w-4 h-4 rounded-full border border-slate-200 flex-shrink-0"></span>
+                  <span>{{ ['A','B','C','D'][idx] }}. {{ opt }}</span>
+                  <span v-if="idx === m.selected && idx !== m.correct" class="ml-auto text-xs text-red-400 font-bold flex-shrink-0">我的答案</span>
+                  <span v-if="idx === m.correct" class="ml-auto text-xs text-emerald-500 font-bold flex-shrink-0">正确答案</span>
+                </div>
+              </div>
+              <div class="px-4 pb-3.5 bg-white">
+                <button @click="m.showAIHint = !m.showAIHint"
+                  class="w-full py-2 rounded-xl text-xs font-black transition-all"
+                  :class="m.showAIHint
+                    ? 'bg-violet-100 text-violet-700'
+                    : 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md shadow-violet-200/60 hover:shadow-lg'">
+                  🤖 {{ m.showAIHint ? '收起 AI 启发思路' : 'AI 启发思路' }}
+                </button>
+                <Transition name="slide-up">
+                  <div v-if="m.showAIHint"
+                    class="mt-2.5 px-3.5 py-3 bg-violet-50 rounded-xl border border-violet-100 text-xs text-violet-800 leading-relaxed">
+                    {{ m.aiHint }}
+                  </div>
+                </Transition>
+              </div>
+            </div>
+          </div>
         </div>
 
       </main>
@@ -1975,7 +2219,104 @@
              flex items-center gap-3 bg-red-600 text-white
              px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold whitespace-nowrap">
       <span class="text-lg">⚠️</span>
-      知识点未掌握，已自动收录至<span class="font-black underline cursor-pointer" @click="profileCourseTab='mistakes'; switchView('profile')">个人中心 · 错题本</span>
+      知识点未掌握，已自动收录至<span class="font-black underline cursor-pointer" @click="profileTab='mistakes'; switchView('profile')">个人中心 · 错题本</span>
+    </div>
+  </Transition>
+
+  <!-- ── 热力图方格 Toast ── -->
+  <Transition name="toast-up">
+    <div v-if="showHeatmapToast"
+      class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[150]
+             flex items-center gap-3 bg-slate-900 text-white
+             px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold whitespace-nowrap">
+      {{ heatmapToastMsg }}
+    </div>
+  </Transition>
+
+  <!-- ── 快照命名对话框 ── -->
+  <Transition name="modal">
+    <div v-if="showSnapshotModal"
+      class="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      @click.self="showSnapshotModal = false">
+      <div class="bg-white rounded-3xl w-full max-w-sm shadow-2xl p-6 space-y-5">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600
+                      flex items-center justify-center text-lg shadow-md shadow-violet-200/60 flex-shrink-0">
+            📸
+          </div>
+          <div>
+            <p class="text-sm font-black text-slate-800">保存 AI 快照笔记</p>
+            <p class="text-xs text-slate-400 mt-0.5">为本次截屏命名后保存</p>
+          </div>
+        </div>
+        <input v-model="snapshotPendingName"
+          class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 focus:border-violet-400
+                 rounded-2xl text-sm font-semibold text-slate-800 focus:outline-none transition-colors"
+          placeholder="输入笔记名称…"
+          @keydown.enter="confirmSnapshot"/>
+        <div class="flex gap-2">
+          <button @click="showSnapshotModal = false"
+            class="flex-1 py-2.5 bg-slate-100 text-slate-600 font-black rounded-2xl text-sm hover:bg-slate-200 transition-colors">
+            取消
+          </button>
+          <button @click="confirmSnapshot"
+            class="flex-1 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 text-white font-black
+                   rounded-2xl text-sm hover:shadow-lg hover:shadow-violet-200/60 active:scale-95 transition-all">
+            确认保存
+          </button>
+        </div>
+      </div>
+    </div>
+  </Transition>
+
+  <!-- ── 笔记详情弹窗 ── -->
+  <Transition name="modal">
+    <div v-if="showNoteModal && activeNote"
+      class="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm p-6"
+      @click.self="showNoteModal = false">
+      <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden">
+        <!-- 截图大图区 -->
+        <div class="h-52 relative"
+          :class="activeNote.tint==='violet' ? 'bg-gradient-to-br from-violet-100 to-purple-200'
+                 : activeNote.tint==='blue'  ? 'bg-gradient-to-br from-blue-100 to-cyan-200'
+                 :                             'bg-gradient-to-br from-emerald-100 to-teal-200'">
+          <!-- 模拟板书 -->
+          <div class="absolute inset-8 opacity-20 space-y-4">
+            <div class="h-px bg-current w-3/4"></div>
+            <div class="h-px bg-current w-1/2"></div>
+            <div class="h-px bg-current w-2/3"></div>
+            <div class="h-px bg-current w-2/5"></div>
+          </div>
+          <button @click="showNoteModal = false"
+            class="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50
+                   flex items-center justify-center text-white transition-colors text-sm font-bold">
+            ✕
+          </button>
+          <div class="absolute bottom-4 left-4 flex items-center gap-2">
+            <span class="text-xs font-black bg-white/70 backdrop-blur-sm px-2.5 py-1 rounded-full"
+              :class="activeNote.tint==='violet' ? 'text-violet-700'
+                     : activeNote.tint==='blue'  ? 'text-blue-700'
+                     :                             'text-emerald-700'">
+              🤖 AI 快照 · {{ activeNote.time }}
+            </span>
+          </div>
+        </div>
+        <!-- 内容区 -->
+        <div class="p-6 space-y-4">
+          <div>
+            <h3 class="text-base font-black text-slate-800">{{ activeNote.title }}</h3>
+            <p class="text-xs text-slate-400 mt-1">{{ activeNote.course }} · {{ activeNote.teacher }} · {{ activeNote.createdAt }}</p>
+          </div>
+          <div class="bg-violet-50 rounded-2xl p-4">
+            <p class="text-xs font-black text-violet-500 mb-2">🤖 AI 核心摘要</p>
+            <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{{ activeNote.summary }}</p>
+          </div>
+          <div class="bg-slate-50 rounded-2xl p-4">
+            <p class="text-xs font-black text-slate-400 mb-2">✏️ 我的补充</p>
+            <p class="text-sm text-slate-500 leading-relaxed">对称轴公式记忆口诀：负 b 除以 2a，顶点纵坐标用判别式……</p>
+          </div>
+        </div>
+      </div>
     </div>
   </Transition>
 
@@ -2097,6 +2438,14 @@ const navItems = [
   {
     view: 'profile', label: '个人中心',
     icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>'
+  },
+  {
+    view: 'notes', label: '我的笔记',
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>'
+  },
+  {
+    view: 'mistakes', label: '错题本',
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/><line x1="9" y1="12" x2="15" y2="18" stroke-linecap="round" stroke-width="2"/><line x1="15" y1="12" x2="9" y2="18" stroke-linecap="round" stroke-width="2"/>'
   },
 ]
 
@@ -2248,8 +2597,65 @@ function enrollBasicCourse(course) {
   myEnrolledBasicIds.value.push(course.id)
 }
 
-// 个人中心课程 tab
+// 个人中心课程 tab (legacy, kept for profileEnrolledList computed)
 const profileCourseTab = ref('basic')
+
+// ── 个人中心新版 profileTab (3-tab: courses | notes | mistakes) ──
+const profileTab = ref('courses')
+
+// 热力图：最近 84 天 mock 数据（确定性伪随机，刷新不变）
+const heatmapData = (() => {
+  const cells = []
+  const today = new Date()
+  for (let i = 83; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    const MM = String(d.getMonth() + 1).padStart(2, '0')
+    const DD = String(d.getDate()).padStart(2, '0')
+    const dateStr = `${MM}/${DD}`
+    const absR = Math.abs((Math.sin(i * 127.1 + 311.7) * 43758.5453) % 1)
+    const status = absR < 0.28 ? 'mistake' : absR < 0.62 ? 'perfect' : 'empty'
+    cells.push({ dateStr, fullDate: `${d.getMonth() + 1}月${d.getDate()}日`, status })
+  }
+  return cells
+})()
+
+// 热力图：每列（周）的月份标签
+const heatmapWeekLabels = (() => {
+  const labels = []
+  for (let w = 0; w < 12; w++) {
+    const cell = heatmapData[w * 7]
+    const m = cell.fullDate.split('月')[0]
+    const prev = w > 0 ? heatmapData[(w - 1) * 7].fullDate.split('月')[0] : null
+    labels.push(m !== prev ? m + '月' : '')
+  }
+  return labels
+})()
+
+const heatmapFilterDate = ref(null)  // null = 全部，string = 仅当日
+
+const showHeatmapToast = ref(false)
+const heatmapToastMsg  = ref('')
+
+function clickCell(cell) {
+  if (cell.status === 'mistake') {
+    heatmapFilterDate.value = cell.dateStr
+    profileTab.value = 'mistakes'
+  } else {
+    heatmapToastMsg.value = cell.status === 'perfect'
+      ? '🎉 当天的作业完成的很棒，再接再厉！'
+      : '📭 当天没有做题哦，开始新的练习吧！'
+    showHeatmapToast.value = true
+    setTimeout(() => { showHeatmapToast.value = false }, 3000)
+  }
+}
+
+// 错题按热力图日期过滤
+const profileMistakesFiltered = computed(() =>
+  heatmapFilterDate.value
+    ? myMistakes.value.filter(m => m.createdAt.startsWith(heatmapFilterDate.value))
+    : myMistakes.value
+)
 
 // 首页：单体基础课 + 每个已加入套系课当前 in-progress 节点（展开为独立卡片）
 const homeEnrolledCourses = computed(() => {
@@ -2669,30 +3075,83 @@ const snapshotNotes = [
   '• 图像平移口诀：左加右减，上加下减\n• y=f(x+h)+k：先移轴再上下\n• 变换顺序影响最终结果',
 ]
 const noteTitles = ['函数图像的平移变换规律', '一次函数斜率与图像关系', '二次函数顶点公式推导']
+
+// ── 时间戳格式化 ──
+function formatNow() {
+  const d = new Date()
+  const MM = String(d.getMonth() + 1).padStart(2, '0')
+  const DD = String(d.getDate()).padStart(2, '0')
+  const HH = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${MM}${DD}_${HH}${mm}`
+}
+
+// ── 笔记视图检索状态 ──
+const notesSearch   = ref('')
+const notesTag      = ref('全部')
+const noteTagList   = ['全部', '数学', '英语', '语文', '重点']
+const filteredNotes = computed(() => {
+  let list = myNotes.value
+  if (notesTag.value !== '全部') list = list.filter(n => n.subject === notesTag.value)
+  const q = notesSearch.value.trim().toLowerCase()
+  if (q) list = list.filter(n => n.title.toLowerCase().includes(q) || n.summary.toLowerCase().includes(q))
+  return list
+})
+
+// 笔记详情弹窗
+const showNoteModal = ref(false)
+const activeNote    = ref(null)
+function openNote(note) { activeNote.value = note; showNoteModal.value = true }
+
+// ── 错题视图检索状态 ──
+const mistakesSearch   = ref('')
+const mistakesTag      = ref('全部')
+const mistakeTagList   = ['全部', '数学', '英语', '语文']
+const filteredMistakes = computed(() => {
+  let list = myMistakes.value
+  if (mistakesTag.value !== '全部') list = list.filter(m => m.subject === mistakesTag.value)
+  const q = mistakesSearch.value.trim().toLowerCase()
+  if (q) list = list.filter(m => m.question.toLowerCase().includes(q) || m.course.toLowerCase().includes(q))
+  return list
+})
+
+// ── 快照命名弹窗状态 ──
+const showSnapshotModal   = ref(false)
+const snapshotPendingName = ref('')
+let _snapshotPending = null
+
 function takeSnapshot() {
   const tints = ['violet', 'blue', 'emerald']
   const n = snapshots.value.length
-  const now = new Date()
   const timeStr = '10:' + String(23 + n * 3).padStart(2, '0')
+  _snapshotPending = { n, tint: tints[n % tints.length], timeStr }
+  snapshotPendingName.value = `课程截屏_${formatNow()}`
+  showSnapshotModal.value = true
+}
+
+function confirmSnapshot() {
+  const { n, tint, timeStr } = _snapshotPending
   const entry = {
     id: Date.now(),
     time: timeStr,
     course: selectedCourse.value?.title || '函数专题精讲',
     note: snapshotNotes[n % snapshotNotes.length],
-    tint: tints[n % tints.length],
+    tint,
   }
   snapshots.value.unshift(entry)
+  const now = new Date()
   myNotes.value.unshift({
     id: entry.id + 1,
-    title: noteTitles[n % noteTitles.length],
+    title: snapshotPendingName.value || noteTitles[n % noteTitles.length],
     subject: selectedCourse.value?.subject || '数学',
     teacher: selectedCourse.value?.teacher || '张华老师',
-    tint: entry.tint,
+    tint,
     time: timeStr,
     course: entry.course,
     summary: entry.note,
     createdAt: `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,
   })
+  showSnapshotModal.value = false
   showFlash.value = true
   setTimeout(() => { showFlash.value = false }, 350)
   showNoteToast.value = true
@@ -2759,6 +3218,13 @@ body { margin: 0; }
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
