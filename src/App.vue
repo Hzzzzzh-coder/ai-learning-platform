@@ -1131,12 +1131,13 @@
             </div>
             <!-- Snapshot button -->
             <button @click="takeSnapshot"
-              class="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-50 hover:bg-violet-100 border border-violet-100 text-violet-600 text-sm font-bold transition-all hover:scale-[1.02] active:scale-95">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
-              </svg>
-              AI 快照
+              class="flex items-center gap-2 px-4 py-2 rounded-xl
+                     bg-gradient-to-r from-violet-500 to-purple-600
+                     hover:from-violet-600 hover:to-purple-700
+                     text-white text-sm font-black shadow-sm
+                     hover:shadow-lg hover:shadow-violet-200/60
+                     transition-all active:scale-95">
+              📸 一键 AI 快照笔记
             </button>
             <!-- Focus button in player -->
             <button @click="toggleFocusMode"
@@ -1221,6 +1222,16 @@
                   <span class="font-black mr-2 text-slate-300">{{ ['A','B','C','D'][i] }}.</span>{{ opt }}
                 </button>
               </div>
+              <Transition name="slide-up">
+                <div v-if="showExplanation && selectedAnswer !== null && selectedAnswer !== quizQuestions[currentQuizIndex].correct"
+                  class="flex items-center gap-2 mb-3 px-3.5 py-2.5 bg-red-50 border border-red-100 rounded-xl text-xs font-semibold text-red-600">
+                  <span>⚠️ 知识点未掌握，已自动收录至</span>
+                  <button @click="profileCourseTab='mistakes'; switchView('profile')"
+                    class="text-violet-600 underline hover:text-violet-800 font-black transition-colors">
+                    个人中心 · 错题本
+                  </button>
+                </div>
+              </Transition>
               <div v-if="showExplanation" class="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-4">
                 <p class="text-xs font-black text-amber-600 mb-1">💡 解析</p>
                 <p class="text-sm text-slate-700">{{ quizQuestions[currentQuizIndex].explanation }}</p>
@@ -1516,9 +1527,11 @@
           <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-2">
-                <h2 class="text-sm font-black text-slate-800">我的课程</h2>
+                <h2 class="text-sm font-black text-slate-800">
+                  {{ profileCourseTab === 'notes' ? '我的笔记' : profileCourseTab === 'mistakes' ? '错题本' : '我的课程' }}
+                </h2>
                 <span class="text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full font-bold">
-                  {{ profileEnrolledList.length }} 门
+                  {{ profileCourseTab === 'notes' ? myNotes.length + ' 条' : profileCourseTab === 'mistakes' ? myMistakes.length + ' 题' : profileEnrolledList.length + ' 门' }}
                 </span>
               </div>
               <button @click="switchView('courses')"
@@ -1528,10 +1541,10 @@
             </div>
 
             <!-- 胶囊 Tab 切换器 -->
-            <div class="flex items-center gap-1 bg-slate-100 rounded-2xl p-1 w-fit mb-4">
-              <button v-for="tab in [{v:'basic',l:'📚 基础课'},{v:'series',l:'🗺️ 系列课'}]" :key="tab.v"
+            <div class="flex items-center gap-1 bg-slate-100 rounded-2xl p-1 mb-4">
+              <button v-for="tab in [{v:'basic',l:'📚 基础课'},{v:'series',l:'🗺️ 系列课'},{v:'notes',l:'📒 我的笔记'},{v:'mistakes',l:'❌ 错题本'}]" :key="tab.v"
                 @click="profileCourseTab = tab.v"
-                class="px-3 py-1.5 text-xs font-black rounded-xl transition-all"
+                class="px-3 py-1.5 text-xs font-black rounded-xl transition-all whitespace-nowrap"
                 :class="profileCourseTab === tab.v
                   ? 'bg-white shadow-sm text-slate-800'
                   : 'text-slate-400 hover:text-slate-600'">
@@ -1539,71 +1552,175 @@
               </button>
             </div>
 
-            <!-- 空状态 -->
-            <div v-if="profileEnrolledList.length === 0" class="text-center py-10">
-              <p class="text-4xl mb-3">📭</p>
-              <p class="text-sm font-bold text-slate-500 mb-1">
-                {{ profileCourseTab === 'basic' ? '暂无已加入的基础课' : '暂无已加入的系列课' }}
-              </p>
-              <p class="text-xs text-slate-400 mb-4">去课程中心探索吧</p>
-              <button @click="switchView('courses')"
-                class="px-5 py-2 bg-violet-600 text-white text-xs font-black rounded-xl hover:bg-violet-700 transition-colors">
-                探索课程中心
-              </button>
-            </div>
-
-            <!-- 课程列表（按 tab 过滤） -->
-            <div v-else class="space-y-1">
-              <div v-for="c in profileEnrolledList" :key="c.id"
-                class="flex items-center gap-4 px-3 py-3.5 rounded-2xl transition-all group cursor-pointer hover:bg-slate-50">
-                <!-- 左侧图标 -->
-                <div class="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl"
-                  :class="c.color==='purple' ? 'bg-violet-50'
-                        : c.color==='blue'   ? 'bg-blue-50'
-                        : c.color==='green'  ? 'bg-emerald-50'
-                        : c.color==='orange' ? 'bg-orange-50'
-                                             : 'bg-teal-50'">
-                  {{ getCourseEmoji(c.subject) }}
-                </div>
-                <!-- 标题 + 进度条 -->
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-bold text-slate-800 truncate">{{ c.title }}</p>
-                  <p class="text-xs text-slate-400 mt-0.5 truncate">{{ c.teacher }}</p>
-                  <div class="flex items-center gap-2 mt-2">
-                    <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div class="h-full rounded-full transition-all duration-700"
-                        :class="c.color==='purple' ? 'bg-gradient-to-r from-violet-400 to-purple-500'
-                              : c.color==='blue'   ? 'bg-gradient-to-r from-blue-400 to-cyan-400'
-                              : c.color==='orange' ? 'bg-gradient-to-r from-orange-400 to-amber-400'
-                              : c.color==='teal'   ? 'bg-gradient-to-r from-teal-400 to-cyan-400'
-                              :                     'bg-gradient-to-r from-emerald-400 to-teal-500'"
-                        :style="{ width: seriesProgress(c) + '%' }">
-                      </div>
-                    </div>
-                    <span class="text-xs font-bold text-slate-400 w-8 text-right flex-shrink-0">{{ seriesProgress(c) }}%</span>
-                  </div>
-                </div>
-                <!-- SVG 环形进度 -->
-                <svg class="w-10 h-10 -rotate-90 flex-shrink-0" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="15" fill="none" stroke="#f1f5f9" stroke-width="3"/>
-                  <circle cx="18" cy="18" r="15" fill="none"
-                    :stroke="c.color==='purple' ? '#8b5cf6'
-                           : c.color==='blue'   ? '#3b82f6'
-                           : c.color==='orange' ? '#f97316'
-                           : c.color==='teal'   ? '#14b8a6'
-                                                : '#10b981'"
-                    stroke-width="3" stroke-linecap="round"
-                    :stroke-dasharray="`${seriesProgress(c) * 0.942} 94.2`"/>
-                </svg>
-                <!-- Hover 淡入继续按钮 -->
-                <button @click.stop="continueSeriesNode(c)"
-                  class="px-3 py-1.5 text-xs font-black rounded-xl bg-violet-100 text-violet-700
-                         opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0
-                         transition-all duration-200 hover:bg-violet-200 flex-shrink-0 whitespace-nowrap">
-                  继续 →
+            <!-- 课程列表（basic / series tab） -->
+            <template v-if="profileCourseTab === 'basic' || profileCourseTab === 'series'">
+              <div v-if="profileEnrolledList.length === 0" class="text-center py-10">
+                <p class="text-4xl mb-3">📭</p>
+                <p class="text-sm font-bold text-slate-500 mb-1">
+                  {{ profileCourseTab === 'basic' ? '暂无已加入的基础课' : '暂无已加入的系列课' }}
+                </p>
+                <p class="text-xs text-slate-400 mb-4">去课程中心探索吧</p>
+                <button @click="switchView('courses')"
+                  class="px-5 py-2 bg-violet-600 text-white text-xs font-black rounded-xl hover:bg-violet-700 transition-colors">
+                  探索课程中心
                 </button>
               </div>
-            </div>
+              <div v-else class="space-y-1">
+                <div v-for="c in profileEnrolledList" :key="c.id"
+                  class="flex items-center gap-4 px-3 py-3.5 rounded-2xl transition-all group cursor-pointer hover:bg-slate-50">
+                  <div class="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl"
+                    :class="c.color==='purple' ? 'bg-violet-50'
+                          : c.color==='blue'   ? 'bg-blue-50'
+                          : c.color==='green'  ? 'bg-emerald-50'
+                          : c.color==='orange' ? 'bg-orange-50'
+                                               : 'bg-teal-50'">
+                    {{ getCourseEmoji(c.subject) }}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-slate-800 truncate">{{ c.title }}</p>
+                    <p class="text-xs text-slate-400 mt-0.5 truncate">{{ c.teacher }}</p>
+                    <div class="flex items-center gap-2 mt-2">
+                      <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-700"
+                          :class="c.color==='purple' ? 'bg-gradient-to-r from-violet-400 to-purple-500'
+                                : c.color==='blue'   ? 'bg-gradient-to-r from-blue-400 to-cyan-400'
+                                : c.color==='orange' ? 'bg-gradient-to-r from-orange-400 to-amber-400'
+                                : c.color==='teal'   ? 'bg-gradient-to-r from-teal-400 to-cyan-400'
+                                :                     'bg-gradient-to-r from-emerald-400 to-teal-500'"
+                          :style="{ width: seriesProgress(c) + '%' }">
+                        </div>
+                      </div>
+                      <span class="text-xs font-bold text-slate-400 w-8 text-right flex-shrink-0">{{ seriesProgress(c) }}%</span>
+                    </div>
+                  </div>
+                  <svg class="w-10 h-10 -rotate-90 flex-shrink-0" viewBox="0 0 36 36">
+                    <circle cx="18" cy="18" r="15" fill="none" stroke="#f1f5f9" stroke-width="3"/>
+                    <circle cx="18" cy="18" r="15" fill="none"
+                      :stroke="c.color==='purple' ? '#8b5cf6'
+                             : c.color==='blue'   ? '#3b82f6'
+                             : c.color==='orange' ? '#f97316'
+                             : c.color==='teal'   ? '#14b8a6'
+                                                  : '#10b981'"
+                      stroke-width="3" stroke-linecap="round"
+                      :stroke-dasharray="`${seriesProgress(c) * 0.942} 94.2`"/>
+                  </svg>
+                  <button @click.stop="continueSeriesNode(c)"
+                    class="px-3 py-1.5 text-xs font-black rounded-xl bg-violet-100 text-violet-700
+                           opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0
+                           transition-all duration-200 hover:bg-violet-200 flex-shrink-0 whitespace-nowrap">
+                    继续 →
+                  </button>
+                </div>
+              </div>
+            </template>
+
+            <!-- 我的笔记 tab -->
+            <template v-else-if="profileCourseTab === 'notes'">
+              <div v-if="myNotes.length === 0" class="text-center py-10">
+                <p class="text-4xl mb-3">📒</p>
+                <p class="text-sm font-bold text-slate-500 mb-1">还没有 AI 笔记</p>
+                <p class="text-xs text-slate-400">在视频播放器中点击「📸 一键 AI 快照笔记」即可生成</p>
+              </div>
+              <div v-else class="grid grid-cols-2 gap-3">
+                <div v-for="note in myNotes" :key="note.id"
+                  class="rounded-2xl overflow-hidden cursor-pointer group transition-all hover:-translate-y-0.5 hover:shadow-md"
+                  style="box-shadow: 0 1px 3px rgba(0,0,0,.07)">
+                  <!-- 彩色头部 -->
+                  <div class="px-3.5 pt-3 pb-2.5"
+                    :class="note.tint==='violet'  ? 'bg-violet-50'
+                           : note.tint==='blue'   ? 'bg-blue-50'
+                           :                        'bg-emerald-50'">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-xs font-black"
+                        :class="note.tint==='violet'  ? 'text-violet-600'
+                               : note.tint==='blue'   ? 'text-blue-600'
+                               :                        'text-emerald-600'">
+                        🤖 AI 笔记
+                      </span>
+                      <span class="text-xs text-slate-400">{{ note.createdAt }}</span>
+                    </div>
+                    <p class="text-xs font-black text-slate-800 leading-snug line-clamp-2">{{ note.title }}</p>
+                    <p class="text-xs text-slate-400 mt-0.5 truncate">{{ note.course }}</p>
+                  </div>
+                  <!-- 摘要正文 -->
+                  <div class="px-3.5 py-3 bg-white">
+                    <p class="text-xs text-slate-500 leading-relaxed line-clamp-3">{{ note.summary }}</p>
+                    <div class="flex items-center gap-1.5 mt-2">
+                      <span class="text-xs px-2 py-0.5 rounded-full font-semibold"
+                        :class="note.tint==='violet'  ? 'bg-violet-100 text-violet-500'
+                               : note.tint==='blue'   ? 'bg-blue-100 text-blue-500'
+                               :                        'bg-emerald-100 text-emerald-500'">
+                        {{ note.time }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <!-- 错题本 tab -->
+            <template v-else-if="profileCourseTab === 'mistakes'">
+              <div v-if="myMistakes.length === 0" class="text-center py-10">
+                <p class="text-4xl mb-3">✅</p>
+                <p class="text-sm font-bold text-slate-500 mb-1">暂无错题记录</p>
+                <p class="text-xs text-slate-400">继续做题，知识掌握情况会自动记录在这里</p>
+              </div>
+              <div v-else class="space-y-3">
+                <div v-for="m in myMistakes" :key="m.id"
+                  class="rounded-2xl border border-slate-100 overflow-hidden">
+                  <!-- 题目头部 -->
+                  <div class="px-4 pt-3.5 pb-3 bg-red-50">
+                    <div class="flex items-center justify-between mb-1.5">
+                      <span class="text-xs font-bold text-red-500">{{ m.subject }} · {{ m.course }}</span>
+                      <span class="text-xs text-slate-400">{{ m.createdAt }}</span>
+                    </div>
+                    <p class="text-sm font-black text-slate-800">{{ m.question }}</p>
+                  </div>
+                  <!-- 选项区 -->
+                  <div class="px-4 py-3 bg-white space-y-1.5">
+                    <div v-for="(opt, idx) in m.options" :key="idx"
+                      class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold"
+                      :class="idx === m.correct ? 'bg-emerald-50 text-emerald-700'
+                             : idx === m.selected ? 'bg-red-50 text-red-600'
+                             : 'text-slate-400'">
+                      <!-- 图标 -->
+                      <span v-if="idx === m.correct" class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                        </svg>
+                      </span>
+                      <span v-else-if="idx === m.selected" class="w-4 h-4 rounded-full bg-red-400 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                      </span>
+                      <span v-else class="w-4 h-4 rounded-full border border-slate-200 flex-shrink-0"></span>
+                      <span>{{ ['A','B','C','D'][idx] }}. {{ opt }}</span>
+                      <span v-if="idx === m.selected && idx !== m.correct"
+                        class="ml-auto text-xs text-red-400 font-bold flex-shrink-0">我的答案</span>
+                      <span v-if="idx === m.correct"
+                        class="ml-auto text-xs text-emerald-500 font-bold flex-shrink-0">正确答案</span>
+                    </div>
+                  </div>
+                  <!-- AI 启发按钮 + 展开面板 -->
+                  <div class="px-4 pb-3.5 bg-white">
+                    <button @click="m.showAIHint = !m.showAIHint"
+                      class="w-full py-2 rounded-xl text-xs font-black transition-all"
+                      :class="m.showAIHint
+                        ? 'bg-violet-100 text-violet-700'
+                        : 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md shadow-violet-200/60 hover:shadow-lg hover:shadow-violet-300/60'">
+                      🤖 {{ m.showAIHint ? '收起 AI 启发思路' : 'AI 启发思路' }}
+                    </button>
+                    <Transition name="slide-up">
+                      <div v-if="m.showAIHint"
+                        class="mt-2.5 px-3.5 py-3 bg-violet-50 rounded-xl border border-violet-100 text-xs text-violet-800 leading-relaxed">
+                        {{ m.aiHint }}
+                      </div>
+                    </Transition>
+                  </div>
+                </div>
+              </div>
+            </template>
           </div>
 
         </div>
@@ -1835,6 +1952,33 @@
     </div>
   </Transition>
 
+  <!-- ── 屏幕闪光（AI 快照模拟） ── -->
+  <Transition name="flash">
+    <div v-if="showFlash" class="fixed inset-0 z-[200] bg-white pointer-events-none"></div>
+  </Transition>
+
+  <!-- ── AI 笔记 Toast ── -->
+  <Transition name="toast-up">
+    <div v-if="showNoteToast"
+      class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[150]
+             flex items-center gap-3 bg-slate-900 text-white
+             px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold whitespace-nowrap">
+      <span class="text-lg">📸</span>
+      AI 已截取当前板书并生成知识摘要，已存入<span class="text-violet-300 font-black">个人中心</span>
+    </div>
+  </Transition>
+
+  <!-- ── 错题收录 Toast ── -->
+  <Transition name="toast-up">
+    <div v-if="showMistakeToast"
+      class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[150]
+             flex items-center gap-3 bg-red-600 text-white
+             px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold whitespace-nowrap">
+      <span class="text-lg">⚠️</span>
+      知识点未掌握，已自动收录至<span class="font-black underline cursor-pointer" @click="profileCourseTab='mistakes'; switchView('profile')">个人中心 · 错题本</span>
+    </div>
+  </Transition>
+
 </template>
 
 <script setup>
@@ -1870,6 +2014,53 @@ const showJoinSuccess = ref(false)
 
 // ── AI Snapshots ──
 const snapshots = ref([])
+
+// ── Notes & Mistakes ──
+const showFlash       = ref(false)
+const showNoteToast   = ref(false)
+const showMistakeToast = ref(false)
+
+const myNotes = ref([
+  {
+    id: 1, title: '函数单调性的判定定理', subject: '数学', teacher: '张华老师',
+    tint: 'violet', time: '10:23', course: '初中数学函数专线',
+    summary: '单调递增区间内，对任意 x₁<x₂ 恒有 f(x₁)<f(x₂)。可用导数判断：f\'(x)>0 则递增，f\'(x)<0 则递减。',
+    createdAt: '04/20 14:23',
+  },
+  {
+    id: 2, title: 'y=ax²+bx+c 顶点与对称轴', subject: '数学', teacher: '张华老师',
+    tint: 'blue', time: '18:45', course: '初中数学函数专线',
+    summary: '对称轴 x=−b/(2a)，顶点坐标 (−b/2a, Δ/−4a)，Δ=b²−4ac 决定与 x 轴交点个数。',
+    createdAt: '04/21 09:12',
+  },
+  {
+    id: 3, title: '议论文三段式结构要点', subject: '语文', teacher: '王芳老师',
+    tint: 'emerald', time: '08:11', course: '语文现代文阅读体系',
+    summary: '引论（提出问题）→ 本论（分析问题，3 分论点+例证）→ 结论（解决问题）。逻辑须层层递进。',
+    createdAt: '04/21 10:05',
+  },
+])
+
+const myMistakes = ref([
+  {
+    id: 1,
+    question: '下列哪个是二次函数？',
+    options: ['y = 3x + 1', 'y = x² − 4x + 3', 'y = 1/x', 'y = √x'],
+    selected: 2, correct: 1,
+    subject: '数学', course: '初中数学函数专线', createdAt: '04/20 15:14',
+    showAIHint: false,
+    aiHint: '你选了 C（y=1/x），是不是忽略了"最高次项"的要求？二次函数定义是最高次为 2 次的多项式。试着把每个选项的最高次项写出来，再比较看看……',
+  },
+  {
+    id: 2,
+    question: '函数 y = x² − 2x + 3 的对称轴是？',
+    options: ['x = −1', 'x = 1', 'x = 2', 'x = −2'],
+    selected: 0, correct: 1,
+    subject: '数学', course: '初中数学函数专线', createdAt: '04/21 09:33',
+    showAIHint: false,
+    aiHint: '你选了 A（x=−1）。注意对称轴公式 x=−b/(2a)，这里 a=1，b=−2，代入算算？负负得正，方向别算反了哦～',
+  },
+])
 
 // ── User ──
 const user = reactive({
@@ -2405,6 +2596,26 @@ function selectAnswer(i) {
   if (selectedAnswer.value !== null) return
   selectedAnswer.value = i
   showExplanation.value = true
+  const q = quizQuestions[currentQuizIndex.value]
+  if (i !== q.correct) {
+    const already = myMistakes.value.find(m => m.question === q.question)
+    if (!already) {
+      const labels = ['A','B','C','D']
+      myMistakes.value.unshift({
+        id: Date.now(),
+        question: q.question,
+        options: q.options,
+        selected: i, correct: q.correct,
+        subject: selectedCourse.value?.subject || '数学',
+        course: selectedCourse.value?.title || '函数专题精讲',
+        createdAt: (() => { const d = new Date(); return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}` })(),
+        showAIHint: false,
+        aiHint: `你选了 ${labels[i]}，思路上可能忽略了某个关键条件。试着重新审题，把 ${labels[q.correct]} 选项的逻辑逐步推导一遍，看看哪一步想法不同？`,
+      })
+    }
+    showMistakeToast.value = true
+    setTimeout(() => { showMistakeToast.value = false }, 3500)
+  }
 }
 function nextQuestion() {
   if (currentQuizIndex.value < quizQuestions.length - 1) {
@@ -2457,16 +2668,35 @@ const snapshotNotes = [
   '• 一次函数 y=kx+b：k 为斜率，b 为截距\n• k>0 图像从左下到右上\n• k<0 图像从左上到右下',
   '• 图像平移口诀：左加右减，上加下减\n• y=f(x+h)+k：先移轴再上下\n• 变换顺序影响最终结果',
 ]
+const noteTitles = ['函数图像的平移变换规律', '一次函数斜率与图像关系', '二次函数顶点公式推导']
 function takeSnapshot() {
   const tints = ['violet', 'blue', 'emerald']
   const n = snapshots.value.length
-  snapshots.value.unshift({
+  const now = new Date()
+  const timeStr = '10:' + String(23 + n * 3).padStart(2, '0')
+  const entry = {
     id: Date.now(),
-    time: '10:' + String(23 + n * 3).padStart(2, '0'),
+    time: timeStr,
     course: selectedCourse.value?.title || '函数专题精讲',
     note: snapshotNotes[n % snapshotNotes.length],
     tint: tints[n % tints.length],
+  }
+  snapshots.value.unshift(entry)
+  myNotes.value.unshift({
+    id: entry.id + 1,
+    title: noteTitles[n % noteTitles.length],
+    subject: selectedCourse.value?.subject || '数学',
+    teacher: selectedCourse.value?.teacher || '张华老师',
+    tint: entry.tint,
+    time: timeStr,
+    course: entry.course,
+    summary: entry.note,
+    createdAt: `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,
   })
+  showFlash.value = true
+  setTimeout(() => { showFlash.value = false }, 350)
+  showNoteToast.value = true
+  setTimeout(() => { showNoteToast.value = false }, 3000)
 }
 </script>
 
@@ -2479,6 +2709,15 @@ body { margin: 0; }
 /* ── Transitions ── */
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s ease; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
+
+.flash-enter-active { transition: opacity 0.05s ease; }
+.flash-leave-active { transition: opacity 0.3s ease; }
+.flash-enter-from, .flash-leave-to { opacity: 0; }
+
+.toast-up-enter-active { transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+.toast-up-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.toast-up-enter-from   { opacity: 0; transform: translateX(-50%) translateY(16px); }
+.toast-up-leave-to     { opacity: 0; transform: translateX(-50%) translateY(8px); }
 
 .focus-enter-active { transition: opacity 0.4s ease, transform 0.4s ease; }
 .focus-leave-active { transition: opacity 0.3s ease, transform 0.3s ease; }
