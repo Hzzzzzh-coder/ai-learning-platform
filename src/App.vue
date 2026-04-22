@@ -2873,7 +2873,7 @@
                       <div class="rounded-2xl p-3.5" style="background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.12);">
                         <p class="text-[10px] text-violet-400 mb-0.5">今日总预计耗时</p>
                         <div class="flex items-baseline gap-1">
-                          <span class="text-3xl font-black leading-none text-slate-800">{{ todayHomework.reduce((s,h)=>s+h.estimatedMin,0) }}</span>
+                          <span class="text-3xl font-black leading-none text-slate-800">{{ aiCounterDisplay }}</span>
                           <span class="text-sm text-slate-400 font-bold">min</span>
                         </div>
                       </div>
@@ -4637,12 +4637,27 @@ function submitHomework(hw) {
 // AI 预测加载状态
 const aiPredictionLoaded = ref(false)
 const aiPredictionLoading = ref(false)
+const aiCounterDisplay = ref(0)
+
 function generateAIPrediction() {
   if (aiPredictionLoaded.value || aiPredictionLoading.value) return
   aiPredictionLoading.value = true
   setTimeout(() => {
     aiPredictionLoading.value = false
     aiPredictionLoaded.value = true
+    // 数字递增动画：Cubic Ease-Out 先快后慢
+    const target = todayHomework.value.reduce((s, h) => s + h.estimatedMin, 0)
+    aiCounterDisplay.value = 0
+    const duration = 1500
+    const startTime = performance.now()
+    const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3)
+    const animate = (currentTime) => {
+      const progress = Math.min((currentTime - startTime) / duration, 1)
+      aiCounterDisplay.value = Math.floor(easeOutCubic(progress) * target)
+      if (progress < 1) requestAnimationFrame(animate)
+      else aiCounterDisplay.value = target
+    }
+    requestAnimationFrame(animate)
   }, 1200)
 }
 
