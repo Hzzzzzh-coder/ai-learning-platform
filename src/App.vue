@@ -1488,24 +1488,133 @@
         </div>
 
         <!-- ══ VIEW 6: Schedule (Google Calendar) ══ -->
-        <div v-else-if="currentView === 'schedule'" class="flex-1 flex flex-col overflow-hidden">
+        <div v-else-if="currentView === 'schedule'" class="flex-1 flex flex-col overflow-hidden relative">
 
-          <!-- Page header -->
-          <div class="flex-shrink-0 bg-white border-b border-slate-100 px-6 py-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <h1 class="text-xl font-black text-slate-800">我的课表</h1>
-                <p class="text-sm text-slate-400 mt-0.5">{{ className ? className + ' · ' : '' }}本周 4/21 – 4/27</p>
+          <!-- ═══ 引导态 ═══ -->
+          <Transition name="fade">
+            <div v-if="timetableState === 'empty'"
+              class="absolute inset-0 flex flex-col items-center justify-center gap-10 p-8 bg-white z-10">
+              <div class="text-center space-y-4">
+                <div class="w-20 h-20 mx-auto rounded-3xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-sm">
+                  <svg class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="text-2xl font-black text-slate-800">当前未关联相关课表</h2>
+                  <p class="text-sm text-slate-400 mt-2">选择以下方式开始建立你的学习时间表</p>
+                </div>
               </div>
-              <button @click="openAddEvent(0, 9, 0)"
-                class="flex items-center gap-2 px-4 py-2.5 bg-violet-600 text-white text-sm font-black rounded-2xl hover:bg-violet-700 active:scale-95 transition-all shadow-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-                </svg>
-                添加课外课程
-              </button>
+              <div class="flex items-stretch gap-5 w-full max-w-xl">
+                <!-- 加入班级 card -->
+                <button @click="showClassModal = true"
+                  class="flex-1 flex flex-col items-center gap-5 px-8 py-10 rounded-3xl border-2 border-violet-200 bg-violet-50
+                         hover:bg-violet-100 hover:border-violet-400 hover:shadow-xl hover:shadow-violet-100/60
+                         transition-all duration-300 active:scale-[0.97] group">
+                  <div class="w-16 h-16 rounded-2xl bg-white border border-violet-100 shadow-sm
+                              flex items-center justify-center group-hover:shadow-md group-hover:shadow-violet-200/60 transition-all">
+                    <svg class="w-8 h-8 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                  </div>
+                  <div class="text-center">
+                    <p class="text-lg font-black text-slate-800 mb-1.5">加入班级</p>
+                    <p class="text-xs text-slate-400 leading-relaxed">输入班级码，自动同步<br/>班级课表与今日作业</p>
+                  </div>
+                  <span class="text-xs font-bold text-violet-500 bg-white border border-violet-200 px-3 py-1 rounded-full shadow-sm mt-auto">
+                    推荐
+                  </span>
+                </button>
+                <!-- 创建课表 card -->
+                <button @click="enterManualMode"
+                  class="flex-1 flex flex-col items-center gap-5 px-8 py-10 rounded-3xl
+                         bg-gradient-to-br from-violet-500 to-purple-600
+                         hover:from-violet-600 hover:to-purple-700
+                         shadow-lg shadow-violet-200/60 hover:shadow-xl hover:shadow-violet-300/60
+                         transition-all duration-300 active:scale-[0.97] group">
+                  <div class="w-16 h-16 rounded-2xl bg-white/20 border border-white/30
+                              flex items-center justify-center group-hover:bg-white/30 transition-all">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                  </div>
+                  <div class="text-center">
+                    <p class="text-lg font-black text-white mb-1.5">创建课表</p>
+                    <p class="text-xs text-white/70 leading-relaxed">自由规划每周时间<br/>灵活安排学习日程</p>
+                  </div>
+                  <span class="text-xs font-bold text-white/80 bg-white/20 border border-white/20 px-3 py-1 rounded-full mt-auto">
+                    自定义
+                  </span>
+                </button>
+              </div>
             </div>
-          </div>
+          </Transition>
+
+          <!-- ═══ 网格视图（班级 / 手动 两种模式）═══ -->
+          <template v-if="timetableState !== 'empty'">
+
+            <!-- 页头 -->
+            <div class="flex-shrink-0 bg-white border-b border-slate-100 px-6 py-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h1 class="text-xl font-black text-slate-800">我的课表</h1>
+                  <div class="flex items-center gap-2 mt-0.5">
+                    <span v-if="timetableState === 'class'"
+                      class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600
+                             bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      {{ className }} · 已同步
+                    </span>
+                    <span class="text-xs text-slate-400">本周 4/21 – 4/27</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+
+                  <!-- 班级课表模式：提供"创建新课表"入口 -->
+                  <button v-if="timetableState === 'class'"
+                    @click="confirmEnterManual"
+                    class="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 text-slate-600
+                           text-sm font-black rounded-2xl hover:bg-slate-50 active:scale-95 transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    创建新课表
+                  </button>
+
+                  <!-- 自建课表模式：提供"班级导入"入口 -->
+                  <button v-if="timetableState === 'manual'"
+                    @click="className ? showClassImportModal = true : showClassModal = true"
+                    class="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 text-slate-600
+                           text-sm font-black rounded-2xl hover:bg-slate-50 active:scale-95 transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    班级导入
+                  </button>
+
+                  <button @click="openAddEvent(0, 9, 0)"
+                    class="flex items-center gap-1.5 px-4 py-2.5 bg-violet-600 text-white text-sm font-black
+                           rounded-2xl hover:bg-violet-700 active:scale-95 transition-all shadow-sm shadow-violet-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    添加课程
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 手动模式提示条 -->
+            <div v-if="timetableState === 'manual'"
+              class="flex-shrink-0 bg-violet-50 border-b border-violet-100 px-6 py-2 flex items-center gap-2">
+              <svg class="w-3.5 h-3.5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <p class="text-xs font-bold text-violet-500">自建课表模式 — 点击任意空白格子即可添加课程</p>
+            </div>
 
           <!-- Day label row (sticky) -->
           <div class="flex-shrink-0 bg-white border-b border-slate-100">
@@ -1537,7 +1646,7 @@
               <div v-for="(label, di) in calDayLabels" :key="di"
                 class="flex-1 border-l border-slate-100 relative select-none"
                 :style="{ height: (calHours.length * CAL_PX_PER_HOUR) + 'px' }"
-                @click="handleColClick(di, $event)">
+                @click="timetableState !== 'manual' && handleColClick(di, $event)">
 
                 <!-- Horizontal hour lines -->
                 <div v-for="h in calHours" :key="h"
@@ -1546,9 +1655,28 @@
                              borderTop: h % 2 === 0 ? '1px solid #f1f5f9' : '1px dashed #f8fafc' }">
                 </div>
 
-                <!-- Event cards -->
+                <!-- 手动模式：每小时 hover 插槽 -->
+                <template v-if="timetableState === 'manual'">
+                  <div v-for="h in calHours" :key="'slot-'+h"
+                    class="absolute left-0 right-0 group cursor-pointer"
+                    :style="{ top: ((h - CAL_START_HOUR) * CAL_PX_PER_HOUR) + 'px', height: CAL_PX_PER_HOUR + 'px' }"
+                    @click.stop="openAddEvent(di, h, 0)">
+                    <div class="absolute inset-px rounded-lg opacity-0 group-hover:opacity-100
+                                bg-violet-50 border border-dashed border-violet-200
+                                transition-all duration-200 flex items-center justify-center">
+                      <div class="w-7 h-7 rounded-full bg-white border border-violet-200 shadow-sm
+                                  flex items-center justify-center">
+                        <svg class="w-3.5 h-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- Event cards (z-10 确保悬浮在 hover 插槽之上) -->
                 <div v-for="ev in dayEvents(di)" :key="ev.id"
-                  class="absolute left-1 right-1 rounded-xl overflow-hidden cursor-pointer hover:brightness-95 transition-all"
+                  class="absolute left-1 right-1 rounded-xl overflow-hidden cursor-pointer hover:brightness-95 transition-all z-10"
                   :style="{
                     top:    evTop(ev) + 'px',
                     height: evHeight(ev) + 'px',
@@ -1570,112 +1698,193 @@
                   </div>
                 </div>
 
-                <!-- Click-to-add hint overlay (transparent) -->
-                <div class="absolute inset-0 hover:bg-violet-500/5 transition-colors pointer-events-none rounded-sm"></div>
+                <!-- 班级/点击模式 hover 提示 -->
+                <div v-if="timetableState !== 'manual'"
+                  class="absolute inset-0 hover:bg-violet-500/5 transition-colors pointer-events-none"></div>
               </div>
 
             </div>
           </div>
 
-          <!-- Add / View event modal -->
-          <Transition name="modal">
-            <div v-if="showAddEventModal"
-              class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-              @click.self="showAddEventModal = false">
-              <div class="bg-white rounded-3xl p-6 w-80 shadow-2xl">
+            <!-- 查看 / 添加课程 Modal -->
+            <Transition name="modal">
+              <div v-if="showAddEventModal"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+                @click.self="showAddEventModal = false">
+                <div class="bg-white rounded-3xl p-6 w-80 shadow-2xl">
 
-                <!-- Viewing an existing event -->
-                <template v-if="selectedEvent">
-                  <div class="flex items-start justify-between mb-4">
-                    <div class="flex items-center gap-3">
-                      <div class="w-3 h-3 rounded-full flex-shrink-0"
-                        :style="{ backgroundColor: EVENT_COLOR_MAP[selectedEvent.colorKey]?.hex }"></div>
-                      <h3 class="text-base font-black text-slate-800">{{ selectedEvent.subject }}</h3>
-                      <span v-if="selectedEvent.type === 'extra'"
-                        class="text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full font-bold">课外</span>
+                  <template v-if="selectedEvent">
+                    <div class="flex items-start justify-between mb-4">
+                      <div class="flex items-center gap-3">
+                        <div class="w-3 h-3 rounded-full flex-shrink-0"
+                          :style="{ backgroundColor: EVENT_COLOR_MAP[selectedEvent.colorKey]?.hex }"></div>
+                        <h3 class="text-base font-black text-slate-800">{{ selectedEvent.subject }}</h3>
+                        <span v-if="selectedEvent.type === 'extra'"
+                          class="text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full font-bold">课外</span>
+                      </div>
+                      <button @click="showAddEventModal = false" class="text-slate-400 hover:text-slate-600 text-xl leading-none">×</button>
                     </div>
-                    <button @click="showAddEventModal = false" class="text-slate-400 hover:text-slate-600 text-lg leading-none">×</button>
-                  </div>
-                  <div class="space-y-2 mb-5 text-sm text-slate-600">
-                    <p>🕐 {{ calDayLabels[selectedEvent.day] }} {{ String(selectedEvent.startHour).padStart(2,'0') }}:{{ String(selectedEvent.startMin).padStart(2,'0') }} · {{ selectedEvent.duration }} 分钟</p>
-                    <p v-if="selectedEvent.teacher">👩‍🏫 {{ selectedEvent.teacher }}</p>
-                  </div>
-                  <div class="flex gap-2">
-                    <button v-if="selectedEvent.type === 'extra'"
-                      @click="deleteEvent(selectedEvent.id)"
-                      class="flex-1 py-2.5 bg-red-50 text-red-500 font-black rounded-2xl text-sm hover:bg-red-100 transition-colors">
-                      删除
-                    </button>
-                    <button @click="showAddEventModal = false"
-                      class="flex-1 py-2.5 bg-slate-100 text-slate-600 font-black rounded-2xl text-sm hover:bg-slate-200 transition-colors">
-                      关闭
-                    </button>
-                  </div>
-                </template>
+                    <div class="space-y-2 mb-5 text-sm text-slate-600">
+                      <p>🕐 {{ calDayLabels[selectedEvent.day] }} {{ String(selectedEvent.startHour).padStart(2,'0') }}:{{ String(selectedEvent.startMin).padStart(2,'0') }} · {{ selectedEvent.duration }} 分钟</p>
+                      <p v-if="selectedEvent.teacher">👩‍🏫 {{ selectedEvent.teacher }}</p>
+                    </div>
+                    <div class="flex gap-2">
+                      <button v-if="selectedEvent.type === 'extra'" @click="deleteEvent(selectedEvent.id)"
+                        class="flex-1 py-2.5 bg-red-50 text-red-500 font-black rounded-2xl text-sm hover:bg-red-100 transition-colors">
+                        删除
+                      </button>
+                      <button @click="showAddEventModal = false"
+                        class="flex-1 py-2.5 bg-slate-100 text-slate-600 font-black rounded-2xl text-sm hover:bg-slate-200 transition-colors">
+                        关闭
+                      </button>
+                    </div>
+                  </template>
 
-                <!-- Adding a new event -->
-                <template v-else>
-                  <div class="flex items-center justify-between mb-5">
-                    <h3 class="text-base font-black text-slate-800">添加课外课程</h3>
-                    <button @click="showAddEventModal = false" class="text-slate-400 hover:text-slate-600 text-lg leading-none">×</button>
-                  </div>
-                  <div class="space-y-3">
-                    <input v-model="addEventForm.subject" placeholder="课程名称（如：钢琴、编程）"
-                      class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-violet-400 focus:bg-white transition-colors" />
-                    <input v-model="addEventForm.teacher" placeholder="老师（可选）"
-                      class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-violet-400 focus:bg-white transition-colors" />
-                    <div class="grid grid-cols-2 gap-2">
-                      <select v-model.number="addEventForm.day"
-                        class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-violet-400 transition-colors">
-                        <option v-for="(l, i) in calDayLabels" :key="i" :value="i">{{ l }}</option>
-                      </select>
-                      <select v-model.number="addEventForm.duration"
-                        class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-violet-400 transition-colors">
-                        <option :value="30">30 分钟</option>
-                        <option :value="45">45 分钟</option>
-                        <option :value="60">1 小时</option>
-                        <option :value="90">1.5 小时</option>
-                        <option :value="120">2 小时</option>
-                      </select>
+                  <template v-else>
+                    <div class="flex items-center justify-between mb-5">
+                      <h3 class="text-base font-black text-slate-800">添加课程</h3>
+                      <button @click="showAddEventModal = false" class="text-slate-400 hover:text-slate-600 text-xl leading-none">×</button>
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
-                      <select v-model.number="addEventForm.startHour"
-                        class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-violet-400 transition-colors">
-                        <option v-for="h in calHours" :key="h" :value="h">{{ String(h).padStart(2,'0') }}:00</option>
-                      </select>
-                      <select v-model.number="addEventForm.startMin"
-                        class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-violet-400 transition-colors">
-                        <option :value="0">整点</option>
-                        <option :value="15">:15</option>
-                        <option :value="30">:30</option>
-                        <option :value="45">:45</option>
-                      </select>
-                    </div>
-                    <!-- Color picker -->
-                    <div>
-                      <p class="text-xs text-slate-400 font-semibold mb-2">颜色标签</p>
-                      <div class="flex gap-2 flex-wrap">
-                        <button v-for="(val, key) in EVENT_COLOR_MAP" :key="key"
-                          @click="addEventForm.colorKey = key"
-                          class="w-7 h-7 rounded-full border-2 transition-all hover:scale-110"
-                          :style="{ backgroundColor: val.hex }"
-                          :class="addEventForm.colorKey === key ? 'border-slate-700 scale-110 shadow-md' : 'border-transparent'">
-                        </button>
+                    <div class="space-y-3">
+                      <input v-model="addEventForm.subject" placeholder="课程名称（如：数学、钢琴）"
+                        class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-violet-400 focus:bg-white transition-colors"/>
+                      <input v-model="addEventForm.teacher" placeholder="老师（可选）"
+                        class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-violet-400 focus:bg-white transition-colors"/>
+                      <div class="grid grid-cols-2 gap-2">
+                        <select v-model.number="addEventForm.day"
+                          class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-violet-400 transition-colors">
+                          <option v-for="(l, i) in calDayLabels" :key="i" :value="i">{{ l }}</option>
+                        </select>
+                        <select v-model.number="addEventForm.duration"
+                          class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-violet-400 transition-colors">
+                          <option :value="30">30 分钟</option>
+                          <option :value="45">45 分钟</option>
+                          <option :value="60">1 小时</option>
+                          <option :value="90">1.5 小时</option>
+                          <option :value="120">2 小时</option>
+                        </select>
+                      </div>
+                      <div class="grid grid-cols-2 gap-2">
+                        <select v-model.number="addEventForm.startHour"
+                          class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-violet-400 transition-colors">
+                          <option v-for="h in calHours" :key="h" :value="h">{{ String(h).padStart(2,'0') }}:00</option>
+                        </select>
+                        <select v-model.number="addEventForm.startMin"
+                          class="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-violet-400 transition-colors">
+                          <option :value="0">整点</option>
+                          <option :value="15">:15</option>
+                          <option :value="30">:30</option>
+                          <option :value="45">:45</option>
+                        </select>
+                      </div>
+                      <div>
+                        <p class="text-xs text-slate-400 font-semibold mb-2">颜色标签</p>
+                        <div class="flex gap-2 flex-wrap">
+                          <button v-for="(val, key) in EVENT_COLOR_MAP" :key="key"
+                            @click="addEventForm.colorKey = key"
+                            class="w-7 h-7 rounded-full border-2 transition-all hover:scale-110"
+                            :style="{ backgroundColor: val.hex }"
+                            :class="addEventForm.colorKey === key ? 'border-slate-700 scale-110 shadow-md' : 'border-transparent'">
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div class="flex gap-2 mt-5">
-                    <button @click="showAddEventModal = false"
-                      class="flex-1 py-2.5 bg-slate-100 text-slate-600 font-black rounded-2xl text-sm hover:bg-slate-200 transition-colors">
-                      取消
-                    </button>
-                    <button @click="addEvent"
-                      class="flex-1 py-2.5 bg-violet-600 text-white font-black rounded-2xl text-sm hover:bg-violet-700 active:scale-95 transition-all">
-                      添加
-                    </button>
-                  </div>
-                </template>
+                    <div class="flex gap-2 mt-5">
+                      <button @click="showAddEventModal = false"
+                        class="flex-1 py-2.5 bg-slate-100 text-slate-600 font-black rounded-2xl text-sm hover:bg-slate-200 transition-colors">
+                        取消
+                      </button>
+                      <button @click="addEvent"
+                        class="flex-1 py-2.5 bg-violet-600 text-white font-black rounded-2xl text-sm hover:bg-violet-700 active:scale-95 transition-all">
+                        添加
+                      </button>
+                    </div>
+                  </template>
 
+                </div>
+              </div>
+            </Transition>
+
+          </template><!-- end timetableState !== 'empty' -->
+
+          <!-- 班级课表导入确认 Modal -->
+          <Transition name="modal">
+            <div v-if="showClassImportModal"
+              class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+              @click.self="showClassImportModal = false">
+              <div class="bg-white rounded-3xl w-full max-w-sm shadow-2xl p-6 space-y-5">
+                <div class="flex items-center gap-3.5">
+                  <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600
+                              flex items-center justify-center shadow-md shadow-violet-200 flex-shrink-0">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p class="text-sm font-black text-slate-800">智能检测到班级课表</p>
+                    <p class="text-xs text-slate-400 mt-0.5">发现可同步的课程数据</p>
+                  </div>
+                </div>
+                <div class="bg-violet-50 rounded-2xl px-4 py-3.5">
+                  <p class="text-sm text-slate-700 leading-relaxed">
+                    检测到您所在的
+                    <span class="font-black text-violet-600">{{ className }}</span>
+                    已有班级课表，是否立即同步导入？
+                  </p>
+                </div>
+                <div class="flex gap-2.5">
+                  <button @click="showClassImportModal = false"
+                    class="flex-1 py-2.5 bg-slate-100 text-slate-600 font-black rounded-2xl text-sm hover:bg-slate-200 transition-colors">
+                    放弃
+                  </button>
+                  <button @click="importClassSchedule"
+                    class="flex-1 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 text-white font-black
+                           rounded-2xl text-sm hover:shadow-lg hover:shadow-violet-200/60 active:scale-95 transition-all">
+                    立即导入
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Transition>
+
+          <!-- 切换自建课表确认 Modal -->
+          <Transition name="modal">
+            <div v-if="showEnterManualModal"
+              class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+              @click.self="showEnterManualModal = false">
+              <div class="bg-white rounded-3xl w-full max-w-sm shadow-2xl p-6 space-y-5">
+                <div class="flex items-center gap-3.5">
+                  <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500
+                              flex items-center justify-center shadow-md shadow-amber-200 flex-shrink-0">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p class="text-sm font-black text-slate-800">切换为自建课表</p>
+                    <p class="text-xs text-slate-400 mt-0.5">自行编排个人专属课程安排</p>
+                  </div>
+                </div>
+                <div class="bg-amber-50 rounded-2xl px-4 py-3.5">
+                  <p class="text-sm text-slate-700 leading-relaxed">
+                    切换后将不再显示
+                    <span class="font-black text-amber-600">{{ className }}</span>
+                    的班级课表，您可以随时通过「班级导入」恢复。
+                  </p>
+                </div>
+                <div class="flex gap-2.5">
+                  <button @click="showEnterManualModal = false"
+                    class="flex-1 py-2.5 bg-slate-100 text-slate-600 font-black rounded-2xl text-sm hover:bg-slate-200 transition-colors">
+                    取消
+                  </button>
+                  <button @click="doEnterManual"
+                    class="flex-1 py-2.5 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-black
+                           rounded-2xl text-sm hover:shadow-lg hover:shadow-amber-200/60 active:scale-95 transition-all">
+                    确认切换
+                  </button>
+                </div>
               </div>
             </div>
           </Transition>
@@ -2412,87 +2621,171 @@
 
         </div>
 
-        <!-- ══ VIEW 9: 错题本 ══ -->
-        <div v-else-if="currentView === 'mistakes'" class="p-6 space-y-5">
-          <!-- 页头 -->
-          <div class="flex items-center justify-between flex-wrap gap-3">
+        <!-- ══ VIEW 10: 今日作业 ══ -->
+        <div v-else-if="currentView === 'homework'" class="p-6 space-y-5">
+
+          <!-- 未加入班级：空状态 -->
+          <div v-if="!className" class="flex flex-col items-center justify-center min-h-[62vh] text-center gap-6">
+            <div class="w-32 h-32 rounded-3xl bg-gradient-to-br from-violet-100 to-purple-200 flex items-center justify-center shadow-sm">
+              <span class="text-6xl select-none">🤓</span>
+            </div>
             <div>
-              <h1 class="text-xl font-black text-slate-800">错题本</h1>
-              <p class="text-sm text-slate-400 mt-0.5">{{ myMistakes.length }} 道错题已收录</p>
+              <h2 class="text-xl font-black text-slate-800 mb-2">还没有加入班级哦</h2>
+              <p class="text-sm text-slate-400 max-w-xs leading-relaxed mx-auto">
+                请输入班级码开启今日学习任务，与同班同学一起完成作业吧！
+              </p>
             </div>
-            <div class="flex items-center gap-2 flex-wrap">
-              <div class="relative">
-                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                </svg>
-                <input v-model="mistakesSearch" placeholder="搜索题目或课程…"
-                  class="pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-2xl
-                         w-52 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent transition-all"/>
-              </div>
-              <div class="flex items-center gap-1">
-                <button v-for="tag in mistakeTagList" :key="tag"
-                  @click="mistakesTag = tag"
-                  class="px-3 py-1.5 text-xs font-bold rounded-full transition-all"
-                  :class="mistakesTag === tag
-                    ? 'bg-rose-500 text-white shadow-sm shadow-rose-200'
-                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'">
-                  {{ tag }}
-                </button>
-              </div>
-            </div>
+            <button @click="showClassModal = true"
+              class="px-8 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white text-sm font-black
+                     rounded-2xl shadow-md shadow-violet-200 hover:shadow-lg hover:shadow-violet-300/60
+                     active:scale-95 transition-all">
+              立即加入班级
+            </button>
           </div>
 
-          <!-- 空状态 -->
-          <div v-if="filteredMistakes.length === 0" class="flex flex-col items-center justify-center py-20">
-            <p class="text-5xl mb-4">✅</p>
-            <p class="text-sm font-bold text-slate-500">暂无匹配错题</p>
-            <p class="text-xs text-slate-400 mt-1">做题时的错误会自动收录至此</p>
-          </div>
+          <!-- 已加入班级：完整看板 -->
+          <template v-else>
 
-          <!-- 错题列表 -->
-          <div v-else class="space-y-4 max-w-2xl">
-            <div v-for="m in filteredMistakes" :key="m.id"
-              class="rounded-2xl border border-slate-100 overflow-hidden">
-              <div class="px-4 pt-3.5 pb-3 bg-red-50">
-                <div class="flex items-center justify-between mb-1.5">
-                  <span class="text-xs font-bold text-red-500">{{ m.subject }} · {{ m.course }}</span>
-                  <span class="text-xs text-slate-400">{{ m.createdAt }}</span>
-                </div>
-                <p class="text-sm font-black text-slate-800">{{ m.question }}</p>
+            <!-- 页头 -->
+            <div class="flex items-center justify-between">
+              <div>
+                <h1 class="text-xl font-black text-slate-800">今日作业</h1>
+                <p class="text-sm text-slate-400 mt-0.5">{{ className }} · 共 {{ todayHomework.length }} 项任务</p>
               </div>
-              <div class="px-4 py-3 bg-white space-y-1.5">
-                <div v-for="(opt, idx) in m.options" :key="idx"
-                  class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold"
-                  :class="idx === m.correct ? 'bg-emerald-50 text-emerald-700' : idx === m.selected ? 'bg-red-50 text-red-600' : 'text-slate-400'">
-                  <span v-if="idx === m.correct" class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                  </span>
-                  <span v-else-if="idx === m.selected" class="w-4 h-4 rounded-full bg-red-400 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
-                  </span>
-                  <span v-else class="w-4 h-4 rounded-full border border-slate-200 flex-shrink-0"></span>
-                  <span>{{ ['A','B','C','D'][idx] }}. {{ opt }}</span>
-                  <span v-if="idx === m.selected && idx !== m.correct" class="ml-auto text-xs text-red-400 font-bold flex-shrink-0">我的答案</span>
-                  <span v-if="idx === m.correct" class="ml-auto text-xs text-emerald-500 font-bold flex-shrink-0">正确答案</span>
+              <span class="text-xs bg-emerald-50 text-emerald-600 font-bold px-3 py-1.5 rounded-full border border-emerald-100">
+                {{ todayHomework.filter(h => h.submitted).length }}/{{ todayHomework.length }} 已完成
+              </span>
+            </div>
+
+            <!-- A. 班级信息与老师寄语 -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-5">
+              <!-- 老师头像 + 信息 -->
+              <div class="flex items-center gap-3.5 flex-shrink-0">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-400 to-purple-500
+                            flex items-center justify-center text-white text-lg font-black shadow-md shadow-violet-200">
+                  李
                 </div>
-              </div>
-              <div class="px-4 pb-3.5 bg-white">
-                <button @click="m.showAIHint = !m.showAIHint"
-                  class="w-full py-2 rounded-xl text-xs font-black transition-all"
-                  :class="m.showAIHint
-                    ? 'bg-violet-100 text-violet-700'
-                    : 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md shadow-violet-200/60 hover:shadow-lg'">
-                  🤖 {{ m.showAIHint ? '收起 AI 启发思路' : 'AI 启发思路' }}
-                </button>
-                <Transition name="slide-up">
-                  <div v-if="m.showAIHint"
-                    class="mt-2.5 px-3.5 py-3 bg-violet-50 rounded-xl border border-violet-100 text-xs text-violet-800 leading-relaxed">
-                    {{ m.aiHint }}
+                <div>
+                  <p class="text-sm font-black text-slate-800">{{ classTeacher.name }}</p>
+                  <p class="text-xs text-slate-400">{{ classTeacher.title }}</p>
+                  <div class="flex items-center gap-1.5 mt-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"></span>
+                    <span class="text-[10px] text-emerald-500 font-bold">{{ className }}</span>
                   </div>
-                </Transition>
+                </div>
+              </div>
+
+              <!-- 分隔线 -->
+              <div class="w-px self-stretch bg-slate-100 flex-shrink-0"></div>
+
+              <!-- 老师寄语气泡 -->
+              <div class="flex-1 relative bg-violet-50 rounded-2xl px-4 py-3 min-w-0">
+                <!-- 气泡尖角 -->
+                <div class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-[7px] w-3.5 h-3.5
+                            bg-violet-50 rotate-45 rounded-sm flex-shrink-0"></div>
+                <p class="text-xs font-black text-violet-500 mb-1.5">💬 老师提醒</p>
+                <p class="text-sm text-slate-700 leading-relaxed">{{ classTeacher.message }}</p>
               </div>
             </div>
-          </div>
+
+            <!-- B + C: 作业列表 + AI 预测 & 班级进度 -->
+            <div class="grid grid-cols-3 gap-4 items-start">
+
+              <!-- B: 作业列表 (占 2 列) -->
+              <div class="col-span-2 space-y-3">
+                <h2 class="text-sm font-black text-slate-700">作业列表</h2>
+                <div v-for="hw in todayHomework" :key="hw.id"
+                  class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-4
+                         hover:shadow-md transition-all">
+                  <!-- 学科图标 -->
+                  <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-black flex-shrink-0"
+                    :class="hw.subjectColor === 'violet' ? 'bg-gradient-to-br from-violet-400 to-purple-500'
+                           : hw.subjectColor === 'blue'   ? 'bg-gradient-to-br from-blue-400 to-cyan-500'
+                           :                                'bg-gradient-to-br from-emerald-400 to-teal-500'">
+                    {{ hw.subject[0] }}
+                  </div>
+                  <!-- 作业信息 -->
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-black text-slate-800 truncate">{{ hw.title }}</p>
+                    <div class="flex items-center gap-2 mt-0.5">
+                      <span class="text-xs px-2 py-0.5 rounded-full font-bold"
+                        :class="hw.subjectColor === 'violet' ? 'bg-violet-50 text-violet-500'
+                               : hw.subjectColor === 'blue'   ? 'bg-blue-50 text-blue-500'
+                               :                                'bg-emerald-50 text-emerald-600'">
+                        {{ hw.subject }}
+                      </span>
+                      <span class="text-xs text-slate-400">{{ hw.count }} 题</span>
+                      <span class="text-slate-200">·</span>
+                      <span class="text-xs text-slate-400">截止：{{ hw.deadline }}</span>
+                    </div>
+                  </div>
+                  <!-- 状态按钮 -->
+                  <button @click="switchView('review')"
+                    class="flex-shrink-0 px-3 py-1.5 text-xs font-black rounded-xl transition-all"
+                    :class="hw.submitted
+                      ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                      : 'bg-violet-50 text-violet-600 border border-violet-200 hover:bg-violet-100 active:scale-95'">
+                    {{ hw.submitted ? '✓ 已提交' : '去完成 →' }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- C: AI 预测 + 班级进度 (占 1 列) -->
+              <div class="col-span-1 space-y-4">
+
+                <!-- AI 预测卡片 -->
+                <div class="bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl p-4 text-white shadow-md shadow-violet-200/60">
+                  <div class="flex items-center gap-2 mb-3">
+                    <div class="w-7 h-7 rounded-xl bg-white/20 flex items-center justify-center text-base">🤖</div>
+                    <p class="text-xs font-black text-white/90">AI 智能预测</p>
+                  </div>
+                  <p class="text-xs text-white/80 leading-relaxed mb-3">
+                    预计完成今日全部任务需
+                    <span class="text-white font-black">40 分钟</span>，
+                    建议在 <span class="text-white font-black">19:30</span> 前开始学习。
+                  </p>
+                  <div class="flex items-center gap-1.5 bg-white/10 rounded-xl px-3 py-2">
+                    <span class="text-[10px] text-white/70 flex-1">最佳专注时段</span>
+                    <span class="text-xs font-black text-white">19:30 – 20:10</span>
+                  </div>
+                </div>
+
+                <!-- 班级进度卡片 -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 space-y-3">
+                  <p class="text-xs font-black text-slate-700">班级完成进度</p>
+                  <!-- 进度胶囊 -->
+                  <div>
+                    <div class="flex justify-between items-center mb-1.5">
+                      <span class="text-xs text-slate-500">{{ classProgressCount }} / {{ classProgressTotal }} 人已交</span>
+                      <span class="text-xs font-black text-violet-600">
+                        {{ Math.round(classProgressCount / classProgressTotal * 100) }}%
+                      </span>
+                    </div>
+                    <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div class="h-full bg-gradient-to-r from-violet-400 to-purple-500 rounded-full transition-all duration-700"
+                        :style="{ width: (classProgressCount / classProgressTotal * 100) + '%' }"></div>
+                    </div>
+                  </div>
+                  <!-- 头像堆叠 -->
+                  <div>
+                    <p class="text-[10px] text-slate-400 mb-2">同班学霸榜</p>
+                    <div class="flex items-center">
+                      <div v-for="(hero, i) in classHeroes" :key="hero.name"
+                        class="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center
+                               text-white text-xs font-black flex-shrink-0 shadow-sm"
+                        :class="hero.color"
+                        :style="{ marginLeft: i === 0 ? '0' : '-8px', zIndex: classHeroes.length - i }">
+                        {{ hero.avatar }}
+                      </div>
+                      <span class="ml-2.5 text-xs text-slate-400 font-semibold">已完成 🎉</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </template>
         </div>
 
       </main>
@@ -3186,6 +3479,10 @@ const navItems = [
     icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>'
   },
   {
+    view: 'homework', label: '今日作业',
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>'
+  },
+  {
     view: 'profile', label: '个人中心',
     icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>'
   },
@@ -3577,7 +3874,21 @@ const calDayLabels = ['周一', '周二', '周三', '周四', '周五', '周六'
 const calDates     = ['4/21', '4/22', '4/23', '4/24', '4/25', '4/26', '4/27']
 const calHours     = Array.from({ length: 15 }, (_, i) => i + CAL_START_HOUR) // 7–21
 
-const showAddEventModal = ref(false)
+const scheduleMode          = ref('empty')   // 'empty' | 'class' | 'manual'
+const showClassImportModal  = ref(false)
+const showEnterManualModal  = ref(false)
+const timetableState        = computed(() => scheduleMode.value)
+
+function enterManualMode() { scheduleMode.value = 'manual' }
+function confirmEnterManual() { showEnterManualModal.value = true }
+function doEnterManual() { scheduleMode.value = 'manual'; showEnterManualModal.value = false }
+function importClassSchedule() {
+  scheduleMode.value = 'class'
+  showClassImportModal.value = false
+}
+
+const showAddEventModal       = ref(false)
+const showScheduleBuilderModal = ref(false)
 const selectedEvent     = ref(null)
 const addEventForm = reactive({
   day: 0, startHour: 9, startMin: 0, duration: 45, subject: '', teacher: '', colorKey: 'extra',
@@ -3591,7 +3902,10 @@ function evHeight(ev) {
 }
 function dayEvents(dayIndex) {
   return scheduleEvents.value
-    .filter(ev => ev.day === dayIndex)
+    .filter(ev => {
+      if (scheduleMode.value === 'manual') return ev.day === dayIndex && ev.type === 'extra'
+      return ev.day === dayIndex
+    })
     .sort((a, b) => a.startHour * 60 + a.startMin - (b.startHour * 60 + b.startMin))
 }
 function handleColClick(dayIndex, e) {
@@ -3636,6 +3950,32 @@ function deleteEvent(id) {
 function openEventDetail(ev) {
   selectedEvent.value = ev
   showAddEventModal.value = true
+}
+function openCreateSchedule() {
+  addEventForm.day       = 0
+  addEventForm.startHour = 9
+  addEventForm.startMin  = 0
+  addEventForm.duration  = 45
+  addEventForm.subject   = ''
+  addEventForm.teacher   = ''
+  addEventForm.colorKey  = 'extra'
+  showScheduleBuilderModal.value = true
+}
+function addEventAndKeepOpen() {
+  if (!addEventForm.subject.trim()) return
+  scheduleEvents.value.push({
+    id: _nextEventId++,
+    day: addEventForm.day,
+    startHour: addEventForm.startHour,
+    startMin: addEventForm.startMin,
+    duration: addEventForm.duration,
+    subject: addEventForm.subject,
+    teacher: addEventForm.teacher,
+    type: 'extra',
+    colorKey: addEventForm.colorKey,
+  })
+  addEventForm.subject = ''
+  addEventForm.teacher = ''
 }
 
 // ── Diagnostics ──
@@ -3954,6 +4294,9 @@ function joinClass() {
     showJoinSuccess.value = false
     showClassModal.value = false
     classCodeInput.value = ''
+    if (scheduleMode.value === 'empty') {
+      showClassImportModal.value = true
+    }
   }, 1800)
 }
 
@@ -4073,6 +4416,52 @@ function confirmSnapshot() {
   setTimeout(() => { showFlash.value = false }, 350)
   showNoteToast.value = true
   setTimeout(() => { showNoteToast.value = false }, 3000)
+}
+
+// ── 今日作业 ──
+const todayHomework = ref([
+  {
+    id: 1,
+    subject: '数学',
+    subjectColor: 'violet',
+    title: '二次函数专题练习',
+    count: 10,
+    deadline: '今日 21:00',
+    submitted: false,
+  },
+  {
+    id: 2,
+    subject: '英语',
+    subjectColor: 'blue',
+    title: '完形填空专项训练',
+    count: 20,
+    deadline: '今日 22:00',
+    submitted: true,
+  },
+  {
+    id: 3,
+    subject: '语文',
+    subjectColor: 'emerald',
+    title: '古文阅读理解练习',
+    count: 5,
+    deadline: '明日 09:00',
+    submitted: false,
+  },
+])
+
+const classProgressCount = ref(12)
+const classProgressTotal = ref(56)
+const classHeroes = [
+  { name: '陈子涵', avatar: '陈', color: 'bg-violet-400' },
+  { name: '王梓轩', avatar: '王', color: 'bg-blue-400' },
+  { name: '赵嘉怡', avatar: '赵', color: 'bg-emerald-400' },
+  { name: '李晨曦', avatar: '李', color: 'bg-amber-400' },
+  { name: '张思远', avatar: '张', color: 'bg-rose-400' },
+]
+const classTeacher = {
+  name: '李明华老师',
+  title: '班主任 · 数学',
+  message: '同学们，今天的函数练习难度适中，记得重点复习一下二次项系数的意义哦！注意审题，加油！',
 }
 </script>
 
