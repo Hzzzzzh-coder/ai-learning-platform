@@ -245,18 +245,6 @@
         </select>
       </div>
 
-      <!-- AI Search -->
-      <div class="flex-1 max-w-lg mx-auto">
-        <div class="relative">
-          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-          <input type="text" placeholder="AI 智能搜索课程、题目、知识点..." v-model="searchQuery"
-            class="w-full pl-10 pr-14 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-transparent placeholder:text-slate-400 transition-all">
-          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-lg font-bold">AI</span>
-        </div>
-      </div>
-
       <!-- Right Controls -->
       <div class="flex items-center gap-3 ml-auto">
         <!-- Focus Mode Toggle -->
@@ -456,8 +444,10 @@
                     </div>
                     <!-- in-progress -->
                     <div v-else-if="node.status==='in-progress'"
-                      class="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0
-                             bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-orange-200 ring-4 ring-orange-100">
+                      @click.stop="switchView('courses')"
+                      class="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 cursor-pointer
+                             bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-orange-200 ring-4 ring-orange-100
+                             hover:scale-110 transition-transform duration-150">
                       <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M8 5v14l11-7z"/>
                       </svg>
@@ -757,19 +747,23 @@
         </div>
 
         <!-- ══ VIEW 3: Analytics ══ -->
-        <div v-else-if="currentView === 'analytics'" class="p-6 space-y-5">
-          <div class="flex items-center justify-between">
-            <div>
-              <h1 class="text-xl font-black text-slate-800">AI 成绩看板</h1>
-              <p class="text-sm text-slate-400 mt-0.5">智能分析学习数据，精准定位突破口</p>
-            </div>
-            <button class="flex items-center gap-2 bg-violet-600 text-white px-5 py-2.5 rounded-2xl text-sm font-black hover:bg-violet-700 transition-colors shadow-lg shadow-violet-200">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-              上传最新成绩单
-            </button>
-          </div>
+        <div v-else-if="currentView === 'analytics'" class="relative overflow-hidden">
 
-          <div class="grid grid-cols-3 gap-5">
+          <!-- ══ DASHBOARD 视图 ══ -->
+          <Transition name="view-slide">
+          <div v-if="analyticsView === 'DASHBOARD'" key="dashboard" class="p-6 space-y-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <h1 class="text-xl font-black text-slate-800">AI 成绩看板</h1>
+                <p class="text-sm text-slate-400 mt-0.5">智能分析学习数据，精准定位突破口</p>
+              </div>
+              <button @click="startUploadAnalysis" class="flex items-center gap-2 bg-violet-600 text-white px-5 py-2.5 rounded-2xl text-sm font-black hover:bg-violet-700 transition-colors shadow-lg shadow-violet-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                上传最新成绩单
+              </button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-5">
             <!-- Line Chart -->
             <div class="col-span-2 bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
               <div class="flex items-center justify-between mb-4">
@@ -884,15 +878,22 @@
           </div>
 
           <!-- AI Insight Row -->
-          <div class="grid grid-cols-3 gap-5">
-            <div class="col-span-2 bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-100 rounded-3xl p-5">
+            <div class="grid grid-cols-3 gap-5">
+            <div class="col-span-2 bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-100 rounded-3xl p-6">
               <div class="flex items-start gap-4">
-                <div class="w-10 h-10 rounded-2xl bg-white border border-violet-100 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <!-- 机器人图标容器 -->
+                <div class="w-10 h-10 rounded-2xl bg-white border border-violet-100 flex items-center justify-center flex-shrink-0 shadow-sm mt-0.5">
                   <span class="text-xl">🤖</span>
                 </div>
-                <div>
-                  <p class="text-xs font-black text-violet-500 uppercase tracking-widest mb-2">AI 智能诊断报告</p>
-                  <p class="text-sm text-slate-700 leading-relaxed">
+
+                <!-- 文本内容区 -->
+                <div class="flex-1">
+                  <!-- 标题 -->
+                  <p class="text-xl font-black text-violet-500 uppercase tracking-widest mb-3">
+                    AI 智能诊断报告
+                  </p>
+                  <!-- 正文 -->
+                  <p class="text-lg text-slate-700 leading-7 text-justify">
                     根据近 6 个月成绩轨迹分析，你的英语呈稳步提升态势（<span class="text-emerald-600 font-bold">+16分</span>），数学本月出现明显突破峰值（91分）。然而雷达图显示，<strong class="text-red-500">几何板块（62分）存在显著知识断层</strong>，与整体均分差距达 20 分。建议优先攻克几何证明与空间想象题型，预计专项练习 2 周可提升 10~15 分。
                   </p>
                 </div>
@@ -915,117 +916,138 @@
               </div>
             </div>
           </div>
+          </div>
+          </Transition><!-- end DASHBOARD -->
 
-          <!-- ── 深度诊断报告卡 ── -->
-          <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-            <!-- Header strip -->
-            <div class="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-4 flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-lg">🩺</div>
-                <div>
-                  <p class="text-xs text-white/50 uppercase tracking-widest font-semibold">AI 学情诊断报告</p>
-                  <p class="text-sm font-black text-white">2026 年 04 月 · 月度智能体检</p>
-                </div>
-              </div>
+          <!-- ══ REPORT 视图 ══ -->
+          <Transition name="view-slide-reverse">
+          <div v-if="analyticsView === 'REPORT'" key="report" class="p-6 space-y-5">
+            <!-- 报告顶部导航 -->
+            <div class="flex items-center justify-between">
+              <button @click="analyticsView = 'DASHBOARD'"
+                class="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-2xl text-sm font-black text-slate-600 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+                </svg>
+                返回看板
+              </button>
               <div class="flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span class="text-emerald-400 text-xs font-semibold">实时分析</span>
+                <span class="text-xs font-semibold text-emerald-600">AI 实时分析</span>
+                <button @click="openSaveReportModal"
+                  class="flex items-center gap-1.5 ml-2 px-3.5 py-2 rounded-2xl text-xs font-black transition-all active:scale-95"
+                  style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.2); color: #7c3aed;">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+                  </svg>
+                  保存至个人中心
+                </button>
               </div>
             </div>
-            <!-- Metrics row -->
-            <div class="grid grid-cols-4 divide-x divide-slate-100 border-b border-slate-100">
-              <div v-for="m in diagMetrics" :key="m.label" class="p-4 text-center">
-                <p class="text-xs text-slate-400 font-medium mb-1">{{ m.label }}</p>
-                <p class="text-xl font-black" :class="m.color">{{ m.value }}</p>
-                <p class="text-xs mt-1" :class="m.trend > 0 ? 'text-emerald-500' : 'text-red-400'">
-                  {{ m.trend > 0 ? '↑' : '↓' }} {{ Math.abs(m.trend) }}{{ m.unit }}
-                </p>
-              </div>
-            </div>
-            <!-- Detailed text -->
-            <div class="p-6 space-y-4">
-              <div class="flex gap-4">
-                <div class="w-1 rounded-full bg-gradient-to-b from-violet-500 to-purple-600 flex-shrink-0"></div>
-                <div>
-                  <p class="text-xs font-black text-violet-600 uppercase tracking-wider mb-2">整体评估</p>
-                  <p class="text-sm text-slate-700 leading-relaxed">近一周知识留存率 <strong class="text-violet-600">78%</strong>，高于班级平均水平 12 个百分点。代数方程模块掌握极佳，错题率仅 6%；但<strong class="text-red-500">空间几何（立体几何）单元连续两次考核失分严重</strong>，主要集中在"辅助线构造"与"体积公式推导"两个子考点，建议本周优先攻克。</p>
-                </div>
-              </div>
-              <!-- Breakdown bars -->
-              <div class="space-y-2.5 pt-2">
-                <div v-for="item in diagDetails" :key="item.name" class="flex items-center gap-3">
-                  <span class="text-xs font-semibold text-slate-500 w-24 flex-shrink-0">{{ item.name }}</span>
-                  <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div class="h-full rounded-full transition-all duration-700"
-                      :class="item.score >= 80 ? 'bg-emerald-400' : item.score >= 65 ? 'bg-amber-400' : 'bg-red-400'"
-                      :style="{ width: item.score + '%' }"></div>
+
+            <!-- 诊断报告主体 -->
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+              <div class="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-lg">🩺</div>
+                  <div>
+                    <p class="text-xs text-white/50 uppercase tracking-widest font-semibold">AI 学情诊断报告</p>
+                    <p class="text-sm font-black text-white">2026 年 04 月 · 月度智能体检</p>
                   </div>
-                  <span class="text-xs font-black w-8 text-right"
-                    :class="item.score >= 80 ? 'text-emerald-600' : item.score >= 65 ? 'text-amber-600' : 'text-red-500'">
-                    {{ item.score }}
-                  </span>
-                  <span class="text-xs px-1.5 py-0.5 rounded-lg font-semibold w-12 text-center"
-                    :class="item.score >= 80 ? 'bg-emerald-50 text-emerald-600' : item.score >= 65 ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-500'">
-                    {{ item.score >= 80 ? '良好' : item.score >= 65 ? '一般' : '薄弱' }}
-                  </span>
                 </div>
               </div>
-            </div>
-            <!-- Targeted micro-course strip -->
-            <div class="border-t border-slate-100 px-6 pt-4 pb-5">
-              <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">🎯 靶向补弱 · AI 推荐微课</p>
-              <div class="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
-                <div v-for="mc in microCourses" :key="mc.id"
-                  class="flex-shrink-0 w-52 rounded-2xl border p-4 cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group"
-                  :class="mc.urgent ? 'border-red-100 bg-red-50/50' : 'border-slate-100 bg-white'">
-                  <div class="flex items-center gap-2 mb-2">
-                    <span class="text-xl">{{ mc.emoji }}</span>
-                    <span class="text-xs px-2 py-0.5 rounded-full font-bold"
-                      :class="mc.urgent ? 'bg-red-100 text-red-600' : 'bg-violet-100 text-violet-600'">
-                      {{ mc.tag }}
+              <div class="grid grid-cols-4 divide-x divide-slate-100 border-b border-slate-100">
+                <div v-for="m in diagMetrics" :key="m.label" class="p-4 text-center">
+                  <p class="text-xs text-slate-400 font-medium mb-1">{{ m.label }}</p>
+                  <p class="text-xl font-black" :class="m.color">{{ m.value }}</p>
+                  <p class="text-xs mt-1" :class="m.trend > 0 ? 'text-emerald-500' : 'text-red-400'">
+                    {{ m.trend > 0 ? '↑' : '↓' }} {{ Math.abs(m.trend) }}{{ m.unit }}
+                  </p>
+                </div>
+              </div>
+              <div class="p-6 space-y-4">
+                <div class="flex gap-4">
+                  <div class="w-1 rounded-full bg-gradient-to-b from-violet-500 to-purple-600 flex-shrink-0"></div>
+                  <div>
+                    <p class="text-xs font-black text-violet-600 uppercase tracking-wider mb-2">整体评估</p>
+                    <p class="text-sm text-slate-700 leading-relaxed">近一周知识留存率 <strong class="text-violet-600">78%</strong>，高于班级平均水平 <strong class="text-green-600">82%</strong>。代数方程模块掌握极佳，错题率仅 <strong class="text-red-600">12%</strong>；但<strong class="text-red-500">空间几何（立体几何）单元连续两次考核失分严重</strong>，主要集中在<strong class="text-blue-500">"辅助线构造"</strong>与"<strong class="text-blue-500">体积公式推导"</strong>两个子考点，建议本周优先攻克。</p>
+                  </div>
+                </div>
+                <div class="space-y-2.5 pt-2">
+                  <div v-for="(item, idx) in diagDetails" :key="item.name" class="flex items-center gap-3">
+                    <span class="text-xs font-semibold text-slate-500 w-24 flex-shrink-0">{{ item.name }}</span>
+                    <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div class="h-full rounded-full"
+                        :class="item.score >= 80 ? 'bg-emerald-400' : item.score >= 65 ? 'bg-amber-400' : 'bg-red-400'"
+                        :style="{ width: diagBarWidths[idx] + '%' }"></div>
+                    </div>
+                    <span class="text-xs font-black w-8 text-right"
+                      :class="item.score >= 80 ? 'text-emerald-600' : item.score >= 65 ? 'text-amber-600' : 'text-red-500'">
+                      {{ diagBarWidths[idx] }}
+                    </span>
+                    <span class="text-xs px-1.5 py-0.5 rounded-lg font-semibold w-12 text-center"
+                      :class="item.score >= 80 ? 'bg-emerald-50 text-emerald-600' : item.score >= 65 ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-500'">
+                      {{ item.score >= 80 ? '良好' : item.score >= 65 ? '一般' : '薄弱' }}
                     </span>
                   </div>
-                  <p class="text-xs font-black text-slate-800 leading-snug mb-1">{{ mc.title }}</p>
-                  <p class="text-xs text-slate-400">{{ mc.teacher }} · {{ mc.duration }}</p>
-                  <div class="mt-3 flex items-center gap-1 text-xs font-bold text-violet-500 group-hover:gap-2 transition-all">
-                    <span>立即学习</span><span>→</span>
+                </div>
+              </div>
+              <div class="border-t border-slate-100 px-6 pt-4 pb-5">
+                <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">🎯 靶向补弱 · AI 推荐微课</p>
+                <div class="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+                  <div v-for="mc in microCourses" :key="mc.id"
+                    @click="switchView('courses')"
+                    class="flex-shrink-0 w-52 rounded-2xl border p-4 cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group"
+                    :class="mc.urgent ? 'border-red-100 bg-red-50/50' : 'border-slate-100 bg-white'">
+                    <div class="flex items-center gap-2 mb-2">
+                      <span class="text-xl">{{ mc.emoji }}</span>
+                      <span class="text-xs px-2 py-0.5 rounded-full font-bold"
+                        :class="mc.urgent ? 'bg-red-100 text-red-600' : 'bg-violet-100 text-violet-600'">
+                        {{ mc.tag }}
+                      </span>
+                    </div>
+                    <p class="text-xs font-black text-slate-800 leading-snug mb-1">{{ mc.title }}</p>
+                    <p class="text-xs text-slate-400">{{ mc.teacher }} · {{ mc.duration }}</p>
+                    <div class="mt-3 flex items-center gap-1 text-xs font-bold text-violet-500 group-hover:gap-2 transition-all">
+                      <span>立即学习</span><span>→</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 桑基图 -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
+              <h2 class="text-sm font-black text-slate-800 mb-4">知识流向图（桑基图模拟）</h2>
+              <div class="flex items-center gap-6 h-28">
+                <div class="flex flex-col gap-2 flex-shrink-0">
+                  <div class="bg-violet-100 text-violet-700 text-xs font-bold px-3 py-2 rounded-xl text-center">代数 85%</div>
+                  <div class="bg-blue-100 text-blue-700 text-xs font-bold px-3 py-2 rounded-xl text-center">函数 90%</div>
+                  <div class="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-2 rounded-xl text-center">方程 75%</div>
+                </div>
+                <svg class="flex-1 h-full" viewBox="0 0 300 112" preserveAspectRatio="none">
+                  <path d="M0,14 C150,14 150,35 300,30" fill="none" stroke="#8b5cf6" stroke-width="20" stroke-opacity="0.4"/>
+                  <path d="M0,56 C150,56 150,35 300,30" fill="none" stroke="#3b82f6" stroke-width="24" stroke-opacity="0.4"/>
+                  <path d="M0,98 C150,98 150,85 300,88" fill="none" stroke="#f59e0b" stroke-width="14" stroke-opacity="0.4"/>
+                  <path d="M0,56 C150,56 150,85 300,88" fill="none" stroke="#10b981" stroke-width="10" stroke-opacity="0.35"/>
+                </svg>
+                <div class="flex flex-col gap-2 flex-shrink-0">
+                  <div class="bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>掌握 82%
+                  </div>
+                  <div class="bg-slate-100 text-slate-500 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-slate-400 flex-shrink-0"></span>模糊 10%
+                  </div>
+                  <div class="bg-red-100 text-red-600 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-red-400 flex-shrink-0"></span>薄弱 8%
                   </div>
                 </div>
               </div>
             </div>
           </div>
+          </Transition><!-- end REPORT -->
 
-          <!-- Sankey -->
-          <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
-            <h2 class="text-sm font-black text-slate-800 mb-4">知识流向图（桑基图模拟）</h2>
-            <div class="flex items-center gap-6 h-28">
-              <div class="flex flex-col gap-2 flex-shrink-0">
-                <div class="bg-violet-100 text-violet-700 text-xs font-bold px-3 py-2 rounded-xl text-center">代数 85%</div>
-                <div class="bg-blue-100 text-blue-700 text-xs font-bold px-3 py-2 rounded-xl text-center">函数 90%</div>
-                <div class="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-2 rounded-xl text-center">方程 75%</div>
-              </div>
-              <svg class="flex-1 h-full" viewBox="0 0 300 112" preserveAspectRatio="none">
-                <path d="M0,14 C150,14 150,35 300,30" fill="none" stroke="#8b5cf6" stroke-width="20" stroke-opacity="0.4"/>
-                <path d="M0,56 C150,56 150,35 300,30" fill="none" stroke="#3b82f6" stroke-width="24" stroke-opacity="0.4"/>
-                <path d="M0,98 C150,98 150,85 300,88" fill="none" stroke="#f59e0b" stroke-width="14" stroke-opacity="0.4"/>
-                <path d="M0,56 C150,56 150,85 300,88" fill="none" stroke="#10b981" stroke-width="10" stroke-opacity="0.35"/>
-              </svg>
-              <div class="flex flex-col gap-2 flex-shrink-0">
-                <div class="bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5">
-                  <span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>掌握 82%
-                </div>
-                <div class="bg-slate-100 text-slate-500 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5">
-                  <span class="w-2 h-2 rounded-full bg-slate-400 flex-shrink-0"></span>模糊 10%
-                </div>
-                <div class="bg-red-100 text-red-600 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5">
-                  <span class="w-2 h-2 rounded-full bg-red-400 flex-shrink-0"></span>薄弱 8%
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ══ VIEW 4: Review Center ══ -->
+        </div><!-- end analytics -->
         <div v-else-if="currentView === 'review'" class="p-6 space-y-5">
           <div>
             <h1 class="text-xl font-black text-slate-800">复习题库</h1>
@@ -2154,7 +2176,7 @@
           <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
             <!-- Tab 导航栏 -->
             <div class="flex items-center border-b border-slate-100 px-5 gap-1">
-              <button v-for="tab in [{v:'courses',l:'我的课程'},{v:'notes',l:'我的笔记'},{v:'mistakes',l:'错题记录'},{v:'tests',l:'我的测试'}]" :key="tab.v"
+              <button v-for="tab in [{v:'courses',l:'我的课程'},{v:'notes',l:'我的笔记'},{v:'mistakes',l:'错题记录'},{v:'tests',l:'我的测试'},{v:'reports',l:'月度报告'}]" :key="tab.v"
                 @click="profileTab = tab.v; if(tab.v !== 'mistakes') heatmapFilterDate = null"
                 class="px-4 py-3.5 text-sm font-bold transition-all border-b-2 -mb-px mr-1 whitespace-nowrap"
                 :class="profileTab === tab.v
@@ -2170,8 +2192,11 @@
                 <span v-if="tab.v === 'mistakes'" class="ml-1.5 text-xs bg-rose-100 text-rose-500 px-1.5 py-0.5 rounded-full font-black">
                   {{ myMistakes.length }}
                 </span>
-                <span v-if="tab.v === 'tests' && myTests.length > 0" class="ml-1.5 text-xs bg-violet-100 text-violet-500 px-1.5 py-0.5 rounded-full font-black">
+                <span v-if="tab.v === 'tests'" class="ml-1.5 text-xs bg-violet-100 text-violet-500 px-1.5 py-0.5 rounded-full font-black">
                   {{ myTests.length }}
+                </span>
+                <span v-if="tab.v === 'reports'" class="ml-1.5 text-xs bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-full font-black">
+                  {{ savedReports.length }}
                 </span>
               </button>
 
@@ -2614,6 +2639,59 @@
                   </div>
                 </template>
 
+              </template>
+
+              <!-- ── 月度报告 tab ── -->
+              <template v-else-if="profileTab === 'reports'">
+                <!-- 搜索框 -->
+                <div class="relative mb-4">
+                  <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                  </svg>
+                  <input v-model="reportsSearch" placeholder="搜索报告名称…"
+                    class="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-2xl
+                           focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-transparent transition-all"/>
+                </div>
+
+                <!-- 空状态 -->
+                <div v-if="filteredReports.length === 0" class="text-center py-14">
+                  <p class="text-4xl mb-3">📊</p>
+                  <p class="text-sm font-bold text-slate-500 mb-1">暂无月度报告</p>
+                  <p class="text-xs text-slate-400">在 AI 成绩看板上传成绩单后，点击「保存至个人中心」</p>
+                </div>
+
+                <!-- 报告列表 -->
+                <div v-else class="space-y-3">
+                  <div v-for="report in filteredReports" :key="report.id"
+                    class="flex items-center gap-4 px-4 py-3.5 rounded-2xl border border-slate-100 bg-white hover:shadow-sm transition-all">
+                    <!-- 左：图标 -->
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-lg flex-shrink-0 shadow-sm shadow-violet-200">
+                      🩺
+                    </div>
+                    <!-- 中：信息 -->
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-black text-slate-800 truncate">{{ report.name }}</p>
+                      <div class="flex items-center gap-3 mt-1">
+                        <span class="text-xs text-slate-400">{{ report.savedAt }} 保存</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-violet-50 text-violet-600 font-bold">
+                          留存率 {{ report.retention }}
+                        </span>
+                        <span class="text-xs px-2 py-0.5 rounded-full font-bold"
+                          :class="report.grade === '优秀' ? 'bg-emerald-50 text-emerald-600'
+                                 : report.grade === '良好' ? 'bg-blue-50 text-blue-600'
+                                 : 'bg-amber-50 text-amber-600'">
+                          {{ report.grade }}
+                        </span>
+                      </div>
+                    </div>
+                    <!-- 右：查看按钮 -->
+                    <button @click="switchView('analytics'); analyticsView = 'REPORT'"
+                      class="flex-shrink-0 px-3.5 py-2 text-xs font-black rounded-xl
+                             bg-violet-50 text-violet-600 hover:bg-violet-100 transition-colors whitespace-nowrap">
+                      查看详情 →
+                    </button>
+                  </div>
+                </div>
               </template>
 
             </div>
@@ -3129,8 +3207,10 @@
               </div>
               <!-- in-progress -->
               <div v-else-if="node.status==='in-progress'"
-                class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0
-                       bg-gradient-to-br from-amber-400 to-orange-500 shadow-md shadow-orange-200">
+                @click.stop="switchView('courses')"
+                class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 cursor-pointer
+                       bg-gradient-to-br from-amber-400 to-orange-500 shadow-md shadow-orange-200
+                       hover:scale-110 transition-transform duration-150">
                 <svg class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z"/>
                 </svg>
@@ -3305,6 +3385,119 @@
         </div>
 
       </div>
+    </div>
+  </Transition>
+
+  <!-- ── AI 成绩分析弹窗 ── -->
+  <Transition name="modal">
+    <div v-if="showUploadModal"
+      class="fixed inset-0 z-[300] flex items-center justify-center p-6"
+      style="background: rgba(15,10,30,0.75); backdrop-filter: blur(16px);">
+      <div class="relative w-full max-w-sm rounded-3xl overflow-hidden p-8 text-center space-y-6"
+        style="background: linear-gradient(135deg, rgba(30,20,60,0.95) 0%, rgba(20,15,45,0.98) 100%);
+               border: 1px solid rgba(139,92,246,0.35);
+               box-shadow: 0 0 60px rgba(139,92,246,0.25), inset 0 1px 0 rgba(255,255,255,0.06);">
+        <!-- 流光边框动画 -->
+        <div class="absolute inset-0 rounded-3xl pointer-events-none overflow-hidden">
+          <div class="absolute -inset-1 rounded-3xl opacity-30"
+            style="background: conic-gradient(from 0deg, transparent 0%, rgba(139,92,246,0.8) 20%, transparent 40%);
+                   animation: border-spin 3s linear infinite;"></div>
+        </div>
+
+        <!-- 机器人图标 -->
+        <div class="relative w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-3xl"
+          style="background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.3);">
+          🤖
+          <span class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-violet-400 animate-ping"></span>
+          <span class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-violet-500"></span>
+        </div>
+
+        <!-- 步骤文字 -->
+        <div class="space-y-1">
+          <p class="text-xs text-violet-300 font-semibold uppercase tracking-widest">DeepSeek AI 分析中</p>
+          <Transition name="fade" mode="out-in">
+            <p :key="uploadStep" class="text-sm font-black text-white leading-relaxed">
+              {{ uploadStep >= 1 && uploadStep <= 3 ? uploadSteps[uploadStep - 1] : '分析完成 ✓' }}
+            </p>
+          </Transition>
+        </div>
+
+        <!-- 进度条 -->
+        <div class="space-y-2">
+          <div class="h-1.5 rounded-full overflow-hidden" style="background: rgba(255,255,255,0.08);">
+            <div class="h-full rounded-full transition-all duration-1000"
+              style="background: linear-gradient(90deg, #8b5cf6, #a78bfa, #c4b5fd);"
+              :style="{ width: uploadStep === 1 ? '33%' : uploadStep === 2 ? '66%' : uploadStep >= 3 ? '100%' : '0%' }">
+            </div>
+          </div>
+          <div class="flex justify-between">
+            <span v-for="(s, i) in uploadSteps" :key="i"
+              class="text-[10px] font-bold transition-colors"
+              :class="uploadStep > i ? 'text-violet-400' : 'text-white/20'">
+              {{ ['解析', '建图', '生成'][i] }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Transition>
+
+  <!-- ── 保存报告弹窗 ── -->
+  <Transition name="modal">
+    <div v-if="showSaveReportModal"
+      class="fixed inset-0 z-[300] flex items-center justify-center p-6"
+      style="background: rgba(15,10,30,0.6); backdrop-filter: blur(12px);"
+      @click.self="!saveReportLoading && (showSaveReportModal = false)">
+      <div class="bg-white rounded-3xl w-full max-w-sm shadow-2xl p-6 space-y-5">
+        <!-- 标题 -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-lg shadow-md shadow-violet-200 flex-shrink-0">
+            🩺
+          </div>
+          <div>
+            <p class="text-sm font-black text-slate-800">保存至个人中心</p>
+            <p class="text-xs text-slate-400 mt-0.5">报告将收录至「月度报告」栏目</p>
+          </div>
+        </div>
+        <!-- 命名输入 -->
+        <input v-model="saveReportName"
+          :disabled="saveReportLoading"
+          class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 focus:border-violet-400
+                 rounded-2xl text-sm font-semibold text-slate-800 focus:outline-none transition-colors disabled:opacity-50"
+          placeholder="输入报告名称…"
+          @keydown.enter="!saveReportLoading && confirmSaveReport()"/>
+        <!-- 按钮 -->
+        <div class="flex gap-2">
+          <button @click="showSaveReportModal = false" :disabled="saveReportLoading"
+            class="flex-1 py-2.5 bg-slate-100 text-slate-600 font-black rounded-2xl text-sm hover:bg-slate-200 transition-colors disabled:opacity-40">
+            取消
+          </button>
+          <button @click="confirmSaveReport" :disabled="saveReportLoading"
+            class="flex-1 py-2.5 rounded-2xl text-sm font-black text-white transition-all active:scale-95 disabled:opacity-70
+                   bg-gradient-to-r from-violet-500 to-purple-600 hover:shadow-lg hover:shadow-violet-200/60">
+            <span v-if="!saveReportLoading">确认保存</span>
+            <span v-else class="flex items-center justify-center gap-2">
+              <span class="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin"></span>
+              正在归档...
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </Transition>
+
+  <!-- 保存成功 Toast -->
+  <Transition name="toast">
+    <div v-if="showSaveReportToast"
+      class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[400] flex items-center gap-3
+             bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold whitespace-nowrap">
+      <span class="text-emerald-400 text-base">✓</span>
+      保存成功！可在
+      <button @click="switchView('profile'); profileTab = 'reports'; showSaveReportToast = false"
+        class="underline text-violet-300 font-black hover:text-violet-200 transition-colors">
+        个人中心 · 月度报告
+      </button>
+      中查看
     </div>
   </Transition>
 
@@ -3803,8 +3996,76 @@ function enrollBasicCourse(course) {
 // 个人中心课程 tab (legacy, kept for profileEnrolledList computed)
 const profileCourseTab = ref('basic')
 
-// ── 个人中心新版 profileTab (4-tab: courses | notes | mistakes | tests) ──
+// ── 个人中心新版 profileTab (5-tab: courses | notes | mistakes | tests | reports) ──
 const profileTab = ref('courses')
+
+// ── 月度报告 ──
+const savedReports = ref([
+  {
+    id: 1001,
+    name: '2026 年 03 月 · 月度智能体检',
+    savedAt: '03/28 09:14',
+    retention: '71%',
+    grade: '良好',
+    metrics: [
+      { label: '知识留存率', value: '71%' },
+      { label: '综合学情', value: '良好' },
+    ],
+  },
+  {
+    id: 1002,
+    name: '2026 年 02 月 · 月度智能体检',
+    savedAt: '02/25 20:03',
+    retention: '65%',
+    grade: '一般',
+    metrics: [
+      { label: '知识留存率', value: '65%' },
+      { label: '综合学情', value: '一般' },
+    ],
+  },
+])
+const reportsSearch = ref('')
+const filteredReports = computed(() => {
+  const q = reportsSearch.value.trim().toLowerCase()
+  if (!q) return savedReports.value
+  return savedReports.value.filter(r => r.name.toLowerCase().includes(q))
+})
+
+// ── 保存报告弹窗 ──
+const showSaveReportModal = ref(false)
+const saveReportName = ref('')
+const saveReportLoading = ref(false)
+const showSaveReportToast = ref(false)
+
+function openSaveReportModal() {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  saveReportName.value = `${y} 年 ${m} 月 · 月度智能体检`
+  showSaveReportModal.value = true
+}
+
+function confirmSaveReport() {
+  saveReportLoading.value = true
+  setTimeout(() => {
+    const now = new Date()
+    savedReports.value.unshift({
+      id: Date.now(),
+      name: saveReportName.value,
+      savedAt: `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,
+      retention: diagMetrics[0].value,
+      grade: diagMetrics[3].value,
+      metrics: [
+        { label: '知识留存率', value: diagMetrics[0].value },
+        { label: '综合学情',   value: diagMetrics[3].value },
+      ],
+    })
+    saveReportLoading.value = false
+    showSaveReportModal.value = false
+    showSaveReportToast.value = true
+    setTimeout(() => { showSaveReportToast.value = false }, 3500)
+  }, 1400)
+}
 
 // ── 我的测试 ──
 const myTests          = ref([])
@@ -4164,6 +4425,47 @@ const microCourses = [
   { id: 2, emoji: '🎯', title: '体积公式推导全解析', teacher: '赵辉老师', duration: '8分钟', tag: '薄弱点', urgent: true },
   { id: 3, emoji: '✨', title: '空间想象力特训营（图解版）', teacher: '李明老师', duration: '15分钟', tag: '进阶', urgent: false },
 ]
+
+// ── AI 成绩看板：视图状态 ──
+const analyticsView = ref('DASHBOARD')  // 'DASHBOARD' | 'REPORT'
+const showUploadModal = ref(false)
+const uploadStep = ref(0)
+const uploadSteps = [
+  '正在解析成绩单数据...',
+  '正在深度分析知识盲区...',
+  'DeepSeek 正在生成深度诊断建议...',
+]
+const diagBarWidths = ref(diagDetails.map(() => 0))
+
+function startUploadAnalysis() {
+  showUploadModal.value = true
+  uploadStep.value = 1
+  setTimeout(() => { uploadStep.value = 2 }, 1100)
+  setTimeout(() => { uploadStep.value = 3 }, 2300)
+  setTimeout(() => {
+    uploadStep.value = 4
+    setTimeout(() => {
+      showUploadModal.value = false
+      uploadStep.value = 0
+      diagBarWidths.value = diagDetails.map(() => 0)
+      analyticsView.value = 'REPORT'
+      requestAnimationFrame(() => {
+        diagDetails.forEach((item, i) => {
+          const target = item.score
+          const start = performance.now()
+          const dur = 900 + i * 80
+          const run = (now) => {
+            const p = Math.min((now - start) / dur, 1)
+            diagBarWidths.value[i] = Math.floor((1 - Math.pow(1 - p, 3)) * target)
+            if (p < 1) requestAnimationFrame(run)
+            else diagBarWidths.value[i] = target
+          }
+          requestAnimationFrame(run)
+        })
+      })
+    }, 600)
+  }, 3600)
+}
 
 // ── Home Stats ──
 // 返回"位于班级前 xx%"：全班最高时为 0%，否则用名次/总人数估算
@@ -4692,6 +4994,17 @@ body { margin: 0; }
 
 .flash-enter-active { transition: opacity 0.05s ease; }
 .flash-leave-active { transition: opacity 0.3s ease; }
+/* ── 视图平移切换 ── */
+.view-slide-enter-active, .view-slide-leave-active,
+.view-slide-reverse-enter-active, .view-slide-reverse-leave-active {
+  transition: all 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+  position: absolute; width: 100%;
+}
+.view-slide-enter-from { opacity: 0; transform: translateX(40px); }
+.view-slide-leave-to   { opacity: 0; transform: translateX(-40px); }
+.view-slide-reverse-enter-from { opacity: 0; transform: translateX(-40px); }
+.view-slide-reverse-leave-to   { opacity: 0; transform: translateX(40px); }
+
 .flash-enter-from, .flash-leave-to { opacity: 0; }
 
 /* ── AI 流光按钮 ── */
