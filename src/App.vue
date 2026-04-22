@@ -2622,7 +2622,7 @@
         </div>
 
         <!-- ══ VIEW 10: 今日作业 ══ -->
-        <div v-else-if="currentView === 'homework'" class="p-6 space-y-5">
+        <div v-else-if="currentView === 'homework'" class="p-6">
 
           <!-- 未加入班级：空状态 -->
           <div v-if="!className" class="flex flex-col items-center justify-center min-h-[62vh] text-center gap-6">
@@ -2646,144 +2646,308 @@
           <!-- 已加入班级：完整看板 -->
           <template v-else>
 
-            <!-- 页头 -->
-            <div class="flex items-center justify-between">
+            <!-- ① 全局进度汇总条 -->
+            <div class="flex items-center justify-between mb-5">
               <div>
                 <h1 class="text-xl font-black text-slate-800">今日作业</h1>
-                <p class="text-sm text-slate-400 mt-0.5">{{ className }} · 共 {{ todayHomework.length }} 项任务</p>
+                <p class="text-sm text-slate-400 mt-0.5">{{ className }}</p>
               </div>
-              <span class="text-xs bg-emerald-50 text-emerald-600 font-bold px-3 py-1.5 rounded-full border border-emerald-100">
-                {{ todayHomework.filter(h => h.submitted).length }}/{{ todayHomework.length }} 已完成
-              </span>
-            </div>
-
-            <!-- A. 班级信息与老师寄语 -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex items-center gap-5">
-              <!-- 老师头像 + 信息 -->
-              <div class="flex items-center gap-3.5 flex-shrink-0">
-                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-400 to-purple-500
-                            flex items-center justify-center text-white text-lg font-black shadow-md shadow-violet-200">
-                  李
+              <div class="flex items-center bg-white rounded-2xl border border-slate-100 shadow-sm px-1 py-1 gap-0.5">
+                <div class="flex items-center gap-1.5 px-3.5 py-1.5">
+                  <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span class="text-[11px] text-slate-400">总预计</span>
+                  <span class="text-[11px] font-black text-slate-700">{{ todayHomework.reduce((s,h)=>s+h.estimatedMin,0) }}min</span>
                 </div>
-                <div>
-                  <p class="text-sm font-black text-slate-800">{{ classTeacher.name }}</p>
-                  <p class="text-xs text-slate-400">{{ classTeacher.title }}</p>
-                  <div class="flex items-center gap-1.5 mt-1">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"></span>
-                    <span class="text-[10px] text-emerald-500 font-bold">{{ className }}</span>
-                  </div>
+                <div class="w-px h-5 bg-slate-100"></div>
+                <div class="flex items-center gap-1.5 px-3.5 py-1.5">
+                  <span class="text-[11px] text-slate-400">重点科目</span>
+                  <span class="text-[11px] font-black text-violet-600">📐 数学</span>
                 </div>
-              </div>
-
-              <!-- 分隔线 -->
-              <div class="w-px self-stretch bg-slate-100 flex-shrink-0"></div>
-
-              <!-- 老师寄语气泡 -->
-              <div class="flex-1 relative bg-violet-50 rounded-2xl px-4 py-3 min-w-0">
-                <!-- 气泡尖角 -->
-                <div class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-[7px] w-3.5 h-3.5
-                            bg-violet-50 rotate-45 rounded-sm flex-shrink-0"></div>
-                <p class="text-xs font-black text-violet-500 mb-1.5">💬 老师提醒</p>
-                <p class="text-sm text-slate-700 leading-relaxed">{{ classTeacher.message }}</p>
+                <div class="w-px h-5 bg-slate-100"></div>
+                <div class="flex items-center gap-1.5 px-3.5 py-1.5">
+                  <span class="text-[11px] text-slate-400">最近截止</span>
+                  <span class="text-[11px] font-black text-rose-500">今日 21:00</span>
+                </div>
+                <div class="w-px h-5 bg-slate-100"></div>
+                <div class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-50">
+                  <span class="text-[11px] font-black text-emerald-600">
+                    {{ todayHomework.filter(h=>h.submitted).length }}/{{ todayHomework.length }} 已完成
+                  </span>
+                </div>
               </div>
             </div>
 
-            <!-- B + C: 作业列表 + AI 预测 & 班级进度 -->
-            <div class="grid grid-cols-3 gap-4 items-start">
+            <!-- ② 主内容：12 列非对称栅格 -->
+            <div class="grid grid-cols-12 gap-5 items-start">
 
-              <!-- B: 作业列表 (占 2 列) -->
-              <div class="col-span-2 space-y-3">
-                <h2 class="text-sm font-black text-slate-700">作业列表</h2>
-                <div v-for="hw in todayHomework" :key="hw.id"
-                  class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex items-center gap-4
-                         hover:shadow-md transition-all">
-                  <!-- 学科图标 -->
-                  <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-black flex-shrink-0"
-                    :class="hw.subjectColor === 'violet' ? 'bg-gradient-to-br from-violet-400 to-purple-500'
-                           : hw.subjectColor === 'blue'   ? 'bg-gradient-to-br from-blue-400 to-cyan-500'
-                           :                                'bg-gradient-to-br from-emerald-400 to-teal-500'">
-                    {{ hw.subject[0] }}
-                  </div>
-                  <!-- 作业信息 -->
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-black text-slate-800 truncate">{{ hw.title }}</p>
-                    <div class="flex items-center gap-2 mt-0.5">
-                      <span class="text-xs px-2 py-0.5 rounded-full font-bold"
-                        :class="hw.subjectColor === 'violet' ? 'bg-violet-50 text-violet-500'
-                               : hw.subjectColor === 'blue'   ? 'bg-blue-50 text-blue-500'
-                               :                                'bg-emerald-50 text-emerald-600'">
-                        {{ hw.subject }}
-                      </span>
-                      <span class="text-xs text-slate-400">{{ hw.count }} 题</span>
-                      <span class="text-slate-200">·</span>
-                      <span class="text-xs text-slate-400">截止：{{ hw.deadline }}</span>
-                    </div>
-                  </div>
-                  <!-- 状态按钮 -->
-                  <button @click="switchView('review')"
-                    class="flex-shrink-0 px-3 py-1.5 text-xs font-black rounded-xl transition-all"
-                    :class="hw.submitted
-                      ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                      : 'bg-violet-50 text-violet-600 border border-violet-200 hover:bg-violet-100 active:scale-95'">
-                    {{ hw.submitted ? '✓ 已提交' : '去完成 →' }}
-                  </button>
-                </div>
-              </div>
+              <!-- ── 左侧 8 列 ── -->
+              <div class="col-span-8 space-y-5">
 
-              <!-- C: AI 预测 + 班级进度 (占 1 列) -->
-              <div class="col-span-1 space-y-4">
-
-                <!-- AI 预测卡片 -->
-                <div class="bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl p-4 text-white shadow-md shadow-violet-200/60">
-                  <div class="flex items-center gap-2 mb-3">
-                    <div class="w-7 h-7 rounded-xl bg-white/20 flex items-center justify-center text-base">🤖</div>
-                    <p class="text-xs font-black text-white/90">AI 智能预测</p>
-                  </div>
-                  <p class="text-xs text-white/80 leading-relaxed mb-3">
-                    预计完成今日全部任务需
-                    <span class="text-white font-black">40 分钟</span>，
-                    建议在 <span class="text-white font-black">19:30</span> 前开始学习。
-                  </p>
-                  <div class="flex items-center gap-1.5 bg-white/10 rounded-xl px-3 py-2">
-                    <span class="text-[10px] text-white/70 flex-1">最佳专注时段</span>
-                    <span class="text-xs font-black text-white">19:30 – 20:10</span>
-                  </div>
-                </div>
-
-                <!-- 班级进度卡片 -->
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 space-y-3">
-                  <p class="text-xs font-black text-slate-700">班级完成进度</p>
-                  <!-- 进度胶囊 -->
-                  <div>
-                    <div class="flex justify-between items-center mb-1.5">
-                      <span class="text-xs text-slate-500">{{ classProgressCount }} / {{ classProgressTotal }} 人已交</span>
-                      <span class="text-xs font-black text-violet-600">
-                        {{ Math.round(classProgressCount / classProgressTotal * 100) }}%
-                      </span>
-                    </div>
-                    <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div class="h-full bg-gradient-to-r from-violet-400 to-purple-500 rounded-full transition-all duration-700"
-                        :style="{ width: (classProgressCount / classProgressTotal * 100) + '%' }"></div>
-                    </div>
-                  </div>
-                  <!-- 头像堆叠 -->
-                  <div>
-                    <p class="text-[10px] text-slate-400 mb-2">同班学霸榜</p>
-                    <div class="flex items-center">
-                      <div v-for="(hero, i) in classHeroes" :key="hero.name"
-                        class="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center
-                               text-white text-xs font-black flex-shrink-0 shadow-sm"
-                        :class="hero.color"
-                        :style="{ marginLeft: i === 0 ? '0' : '-8px', zIndex: classHeroes.length - i }">
-                        {{ hero.avatar }}
+                <!-- Hero 区：老师名片 + 寄语 + 讲义入口 -->
+                <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                  <div class="grid grid-cols-5">
+                    <!-- 老师名片 (2列) -->
+                    <div class="col-span-2 bg-gradient-to-br from-violet-50 to-purple-50 p-5 flex flex-col items-center justify-center gap-3 border-r border-violet-100/70">
+                      <div class="relative">
+                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-400 to-purple-500
+                                    flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-violet-200">
+                          李
+                        </div>
+                        <span class="absolute -bottom-1.5 -right-1.5 bg-amber-400 rounded-lg px-1.5 py-0.5
+                                     text-[9px] font-black text-white shadow-sm leading-tight">班主任</span>
                       </div>
-                      <span class="ml-2.5 text-xs text-slate-400 font-semibold">已完成 🎉</span>
+                      <div class="text-center">
+                        <p class="text-sm font-black text-slate-800">{{ classTeacher.name }}</p>
+                        <p class="text-xs text-slate-400 mt-0.5">{{ classTeacher.title }}</p>
+                      </div>
+                      <div class="flex items-center gap-1.5 bg-white/70 rounded-full px-2.5 py-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span class="text-[10px] text-emerald-600 font-bold">在线</span>
+                      </div>
+                    </div>
+                    <!-- 寄语 + 讲义 (3列) -->
+                    <div class="col-span-3 p-5 flex flex-col gap-3.5 justify-center">
+                      <div>
+                        <p class="text-[10px] font-black text-violet-400 uppercase tracking-wider mb-2">💬 今日学习重点</p>
+                        <div class="bg-violet-50 rounded-2xl px-4 py-3">
+                          <p class="text-sm text-slate-700 leading-relaxed">{{ classTeacher.message }}</p>
+                        </div>
+                      </div>
+                      <!-- 班级文件快捷入口 -->
+                      <div class="flex items-center gap-2.5 bg-slate-50 hover:bg-blue-50 rounded-xl px-3.5 py-2.5 cursor-pointer transition-all group border border-transparent hover:border-blue-100">
+                        <div class="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                          <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                          </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-xs font-black text-slate-700">今日配套讲义</p>
+                          <p class="text-[10px] text-slate-400 truncate">函数专题_第3讲.pdf · 查看配套资料</p>
+                        </div>
+                        <svg class="w-4 h-4 text-slate-300 group-hover:text-blue-400 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-              </div>
-            </div>
+                <!-- 作业长横条列表 -->
+                <div>
+                  <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-black text-slate-700">作业任务</h2>
+                    <span class="text-xs text-slate-400">
+                      {{ todayHomework.filter(h=>h.status==='completed').length }}/{{ todayHomework.length }} 已完成
+                    </span>
+                  </div>
+                  <div class="space-y-3">
+                    <div v-for="hw in todayHomework" :key="hw.id"
+                      class="relative rounded-3xl border overflow-hidden transition-all duration-200"
+                      :class="hw.status==='completed' ? 'bg-white border-emerald-100' : 'bg-white border-slate-100 hover:shadow-md'">
+
+                      <!-- 左侧色带 -->
+                      <div class="absolute left-0 top-0 bottom-0 w-1"
+                        :class="hw.subjectColor==='violet' ? 'bg-gradient-to-b from-violet-400 to-purple-500'
+                               : hw.subjectColor==='blue'   ? 'bg-gradient-to-b from-blue-400 to-cyan-500'
+                               :                              'bg-gradient-to-b from-emerald-400 to-teal-500'">
+                      </div>
+
+                      <div class="pl-5 pr-4 py-4 flex items-center gap-4">
+                        <!-- 左：图标 + 标题信息 -->
+                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                          <span class="text-2xl leading-none flex-shrink-0">{{ hw.emoji }}</span>
+                          <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                              <p class="text-sm font-black text-slate-800 leading-tight">{{ hw.title }}</p>
+                              <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100 whitespace-nowrap flex-shrink-0">
+                                +{{ hw.xp }} XP
+                              </span>
+                            </div>
+                            <div class="flex items-center gap-3 text-xs text-slate-400">
+                              <span>{{ hw.count }} 道题 · {{ hw.subject }}</span>
+                              <span class="flex items-center gap-1">
+                                <span class="text-[10px]">难度</span>
+                                <span v-for="s in 3" :key="s" class="text-xs leading-none"
+                                  :class="s <= hw.difficulty ? 'text-amber-400' : 'text-slate-200'">★</span>
+                              </span>
+                              <span class="flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                预计 {{ hw.estimatedMin }}min
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- 中：知识点标签 -->
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                          <span v-for="tag in hw.tags" :key="tag"
+                            class="text-[10px] font-bold px-2 py-1 rounded-lg leading-tight"
+                            :class="hw.subjectColor==='violet' ? 'bg-violet-50 text-violet-500'
+                                   : hw.subjectColor==='blue'   ? 'bg-blue-50 text-blue-500'
+                                   :                              'bg-emerald-50 text-emerald-600'">
+                            #{{ tag }}
+                          </span>
+                        </div>
+
+                        <!-- 右：截止时间 + 三段式按钮 -->
+                        <div class="flex items-center gap-3 flex-shrink-0">
+                          <div class="flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5 flex-shrink-0"
+                              :class="hw.urgent ? 'text-rose-400' : 'text-slate-300'"
+                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="text-xs font-semibold whitespace-nowrap" :class="hw.urgent ? 'text-rose-500' : 'text-slate-400'">
+                              {{ hw.deadline }}
+                            </span>
+                          </div>
+
+                          <!-- 三段式状态按钮 -->
+                          <button v-if="hw.status === 'todo'" @click="startHomework(hw); switchView('courses')"
+                            class="px-4 py-2 text-xs font-black rounded-xl transition-all active:scale-95 whitespace-nowrap
+                                   bg-gradient-to-r from-violet-500 to-purple-600 text-white hover:shadow-lg hover:shadow-violet-200/60">
+                            开始作业
+                          </button>
+                          <button v-else-if="hw.status === 'pending'" @click="submitHomework(hw)"
+                            class="px-4 py-2 text-xs font-black rounded-xl transition-all active:scale-95 whitespace-nowrap
+                                   bg-gradient-to-r from-violet-500 to-purple-600 text-white hover:shadow-lg hover:shadow-violet-200/60">
+                            提交作业
+                          </button>
+                          <div v-else class="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 rounded-xl">
+                            <span class="text-xs font-black text-white whitespace-nowrap">√ 已完成</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div><!-- end 左侧 8 列 -->
+
+              <!-- ── 右侧 4 列 ── -->
+              <div class="col-span-4 space-y-4">
+
+                <!-- AI 智能预测（玻璃拟态 + 流光按钮） -->
+                <div class="relative rounded-3xl overflow-hidden border border-white/30"
+                  style="background: linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(168,85,247,0.08) 100%); backdrop-filter: blur(12px);">
+                  <!-- 背景光晕 -->
+                  <div class="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-violet-400/10 blur-2xl pointer-events-none"></div>
+                  <div class="absolute -bottom-4 -left-4 w-20 h-20 rounded-full bg-purple-400/10 blur-xl pointer-events-none"></div>
+
+                  <div class="relative p-5">
+                    <div class="flex items-center gap-2.5 mb-4">
+                      <div class="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                        style="background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.2);">🤖</div>
+                      <div>
+                        <p class="text-sm font-black text-slate-800">AI 智能预测</p>
+                        <p class="text-[10px] text-slate-400">基于你的历史学习数据</p>
+                      </div>
+                    </div>
+
+                    <!-- 未加载：流光按钮 -->
+                    <div v-if="!aiPredictionLoaded && !aiPredictionLoading"
+                      class="flex flex-col items-center justify-center py-6 gap-4">
+                      <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl"
+                        style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);">🤖</div>
+                      <button @click="generateAIPrediction"
+                        class="ai-shimmer-btn relative px-5 py-2.5 rounded-2xl text-sm font-black text-violet-700
+                               transition-all active:scale-95 overflow-hidden"
+                        style="background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.25);">
+                        <span class="relative z-10">生成智能预测</span>
+                      </button>
+                    </div>
+
+                    <!-- 加载中 -->
+                    <div v-else-if="aiPredictionLoading"
+                      class="flex flex-col items-center justify-center py-6 gap-3">
+                      <div class="w-10 h-10 rounded-full border-4 border-violet-200 border-t-violet-500 animate-spin"></div>
+                      <p class="text-xs text-slate-500 font-semibold">AI 正在分析中...</p>
+                    </div>
+
+                    <!-- 已加载 -->
+                    <div v-else class="space-y-2.5">
+                      <div class="rounded-2xl p-3.5" style="background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.12);">
+                        <p class="text-[10px] text-violet-400 mb-0.5">今日总预计耗时</p>
+                        <div class="flex items-baseline gap-1">
+                          <span class="text-3xl font-black leading-none text-slate-800">{{ todayHomework.reduce((s,h)=>s+h.estimatedMin,0) }}</span>
+                          <span class="text-sm text-slate-400 font-bold">min</span>
+                        </div>
+                      </div>
+                      <div v-for="(row, i) in [
+                        { label: '最佳学习时段', value: '19:30 – 20:30' },
+                        { label: '建议专注时长', value: '25min × 2 节' },
+                        { label: '优先完成', value: '📐 数学' },
+                      ]" :key="i"
+                        class="flex items-center justify-between rounded-xl px-3 py-2"
+                        style="background: rgba(139,92,246,0.06); border: 1px solid rgba(139,92,246,0.08);">
+                        <span class="text-[10px] text-slate-400">{{ row.label }}</span>
+                        <span class="text-xs font-black text-slate-700">{{ row.value }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 班级完成进度（圆形进度环） -->
+                <div class="relative rounded-3xl overflow-hidden border border-white/30 p-5 space-y-4"
+                  style="background: linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(20,184,166,0.05) 100%); backdrop-filter: blur(8px);">
+                  <div class="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-emerald-400/10 blur-xl pointer-events-none"></div>
+
+                  <p class="text-xs font-black text-slate-700 relative">班级完成进度</p>
+
+                  <!-- 圆形进度环 + 数字 -->
+                  <div class="flex items-center gap-4">
+                    <div class="relative flex-shrink-0 w-16 h-16">
+                      <svg class="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
+                        <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(16,185,129,0.12)" stroke-width="6"/>
+                        <circle cx="32" cy="32" r="26" fill="none" stroke="url(#progressGrad)" stroke-width="6"
+                          stroke-linecap="round"
+                          :stroke-dasharray="`${2 * Math.PI * 26}`"
+                          :stroke-dashoffset="`${2 * Math.PI * 26 * (1 - classProgressCount / classProgressTotal)}`"
+                          style="transition: stroke-dashoffset 0.8s ease"/>
+                        <defs>
+                          <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#10b981"/>
+                            <stop offset="100%" stop-color="#14b8a6"/>
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-sm font-black text-slate-800 leading-none">{{ Math.round(classProgressCount / classProgressTotal * 100) }}%</span>
+                      </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs font-black text-slate-700">{{ classProgressCount }} / {{ classProgressTotal }} 人已交</p>
+                      <p class="text-[10px] text-slate-400 mt-0.5 leading-relaxed">班级整体进度良好，继续加油！</p>
+                      <!-- 头像堆叠（精简） -->
+                      <div class="flex items-center mt-2">
+                        <div v-for="(hero, i) in classHeroes.slice(0,4)" :key="hero.name"
+                          class="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center
+                                 text-white text-[9px] font-black flex-shrink-0 shadow-sm"
+                          :class="hero.color"
+                          :style="{ marginLeft: i === 0 ? '0' : '-6px', zIndex: classHeroes.length - i }">
+                          {{ hero.avatar }}
+                        </div>
+                        <span class="ml-2 text-[10px] text-slate-400">已完成 🎉</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- AI 动态点评 -->
+                  <div class="rounded-2xl px-3.5 py-3" style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.12);">
+                    <p class="text-[10px] text-emerald-500 font-black mb-1">🤖 AI 班级洞察</p>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                      AI 检测到班级 <span class="font-black text-emerald-600">数学</span> 热度正在上升，咱班同学都在努力呢！
+                    </p>
+                  </div>
+                </div>
+
+              </div><!-- end 右侧 4 列 -->
+
+            </div><!-- end grid-cols-12 -->
 
           </template>
         </div>
@@ -3491,9 +3655,9 @@ const navItems = [
 // ── Daily Tasks ──
 const dailyTasks = ref([
   { id: 1, title: '完成今日课程', xp: 30, done: true },
-  { id: 2, title: '练习 10 道题', xp: 20, done: true },
-  { id: 3, title: 'AI 预习一门课', xp: 25, done: false },
-  { id: 4, title: '坚持打卡签到', xp: 15, done: false },
+  { id: 2, title: '练习 10 道题', xp: 20, done: false },
+  { id: 3, title: '坚持打卡签到', xp: 15, done: true },
+  { id: 4, title: 'AI 预习一门课', xp: 25, done: false },
 ])
 
 function completeTask(task) {
@@ -4421,33 +4585,66 @@ function confirmSnapshot() {
 // ── 今日作业 ──
 const todayHomework = ref([
   {
-    id: 1,
-    subject: '数学',
-    subjectColor: 'violet',
-    title: '二次函数专题练习',
-    count: 10,
-    deadline: '今日 21:00',
-    submitted: false,
+    id: 1, subject: '数学', subjectColor: 'violet', emoji: '📐',
+    title: '二次函数专题练习', count: 10, deadline: '今日 21:00', submitted: false,
+    difficulty: 3, estimatedMin: 25, xp: 30, urgent: true,
+    tags: ['二次函数', '解析式', '顶点式'],
+    status: 'todo',
   },
   {
-    id: 2,
-    subject: '英语',
-    subjectColor: 'blue',
-    title: '完形填空专项训练',
-    count: 20,
-    deadline: '今日 22:00',
-    submitted: true,
+    id: 2, subject: '英语', subjectColor: 'blue', emoji: '🔤',
+    title: '完形填空专项训练', count: 20, deadline: '今日 22:00', submitted: true,
+    difficulty: 2, estimatedMin: 20, xp: 25, urgent: false,
+    tags: ['完形填空', '语境推断'],
+    status: 'completed',
   },
   {
-    id: 3,
-    subject: '语文',
-    subjectColor: 'emerald',
-    title: '古文阅读理解练习',
-    count: 5,
-    deadline: '明日 09:00',
-    submitted: false,
+    id: 3, subject: '语文', subjectColor: 'emerald', emoji: '📖',
+    title: '古文阅读理解练习', count: 5, deadline: '明日 09:00', submitted: false,
+    difficulty: 2, estimatedMin: 15, xp: 20, urgent: false,
+    tags: ['古文', '文言虚词'],
+    status: 'todo',
+  },
+  {
+    id: 4, subject: '物理', subjectColor: 'blue', emoji: '⚡',
+    title: '牛顿第二定律综合训练', count: 8, deadline: '今日 21:30', submitted: false,
+    difficulty: 3, estimatedMin: 30, xp: 35, urgent: true,
+    tags: ['受力分析', 'F=ma', '加速度'],
+    status: 'pending',
+  },
+  {
+    id: 5, subject: '历史', subjectColor: 'emerald', emoji: '🏛️',
+    title: '近代史大事年表默写', count: 15, deadline: '明日 08:00', submitted: false,
+    difficulty: 1, estimatedMin: 10, xp: 15, urgent: false,
+    tags: ['近代史', '时间轴', '事件'],
+    status: 'todo',
   },
 ])
+
+// 作业状态管理
+function startHomework(hw) {
+  if (hw.status === 'todo') {
+    hw.status = 'pending'
+  }
+}
+function submitHomework(hw) {
+  if (hw.status === 'pending') {
+    hw.status = 'completed'
+    hw.submitted = true
+  }
+}
+
+// AI 预测加载状态
+const aiPredictionLoaded = ref(false)
+const aiPredictionLoading = ref(false)
+function generateAIPrediction() {
+  if (aiPredictionLoaded.value || aiPredictionLoading.value) return
+  aiPredictionLoading.value = true
+  setTimeout(() => {
+    aiPredictionLoading.value = false
+    aiPredictionLoaded.value = true
+  }, 1200)
+}
 
 const classProgressCount = ref(12)
 const classProgressTotal = ref(56)
@@ -4481,6 +4678,21 @@ body { margin: 0; }
 .flash-enter-active { transition: opacity 0.05s ease; }
 .flash-leave-active { transition: opacity 0.3s ease; }
 .flash-enter-from, .flash-leave-to { opacity: 0; }
+
+/* ── AI 流光按钮 ── */
+.ai-shimmer-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.18) 50%, transparent 100%);
+  transform: translateX(-100%);
+  animation: ai-shimmer 2.4s ease-in-out infinite;
+}
+@keyframes ai-shimmer {
+  0%   { transform: translateX(-100%); }
+  60%  { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
+}
 
 .toast-up-enter-active { transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1); }
 .toast-up-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
