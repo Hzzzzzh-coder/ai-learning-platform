@@ -1046,20 +1046,207 @@
           <div v-if="reviewTab === 'targeted'" class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-5">
             <h2 class="text-sm font-black text-slate-800">选择课程，生成定向试卷</h2>
             <div class="flex gap-3">
-              <select class="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-300 font-medium">
-                <option>初中数学-函数专题精讲</option>
-                <option>英语语法精讲</option>
-                <option>语文现代文阅读</option>
+              <select v-model="targetedCourseKey" class="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-300 font-medium">
+                <option v-for="course in targetedCourseOptions" :key="course.key" :value="course.key">{{ course.label }}</option>
               </select>
-              <button @click="startQuiz" class="px-6 py-3 bg-violet-600 text-white text-sm font-black rounded-2xl hover:bg-violet-700 transition-colors shadow-lg shadow-violet-200 whitespace-nowrap">
-                生成试卷 →
+              <button @click="generateTargetedQuiz" :disabled="isGeneratingTargetedQuiz"
+                class="px-6 py-3 bg-violet-600 text-white text-sm font-black rounded-2xl transition-colors shadow-lg shadow-violet-200 whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                :class="isGeneratingTargetedQuiz ? '' : 'hover:bg-violet-700'">
+                {{ isGeneratingTargetedQuiz ? '生成中...' : '生成试卷 →' }}
               </button>
             </div>
             <!-- Quiz or placeholder -->
-            <div v-if="quizStarted">
-              <QuizBlock :questions="quizQuestions" :current-index="currentQuizIndex"
-                :selected-answer="selectedAnswer" :show-explanation="showExplanation"
-                @select="selectAnswer" @next="nextQuestion"/>
+            <div v-if="isGeneratingTargetedQuiz" class="rounded-2xl border border-violet-100 bg-violet-50 px-5 py-6">
+              <div class="flex items-center gap-3">
+                <span class="w-4 h-4 rounded-full border-2 border-violet-300 border-t-violet-600 animate-spin"></span>
+                <p class="text-sm font-semibold text-violet-700">{{ targetedGenerateTexts[targetedGenerateStep] }}</p>
+              </div>
+              <div class="mt-3 h-1.5 bg-violet-100 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-violet-400 to-purple-500 rounded-full animate-pulse" :style="{ width: `${(targetedGenerateStep + 1) / targetedGenerateTexts.length * 100}%` }"></div>
+              </div>
+            </div>
+            <div v-else-if="generatedTargetedQuestions.length > 0" class="border-t border-slate-100 pt-5">
+              <!-- 试卷头 -->
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-black text-slate-800">定向模拟试卷</h3>
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-violet-100 text-violet-600 font-bold">单选题</span>
+                  <span class="text-xs text-slate-400">共 {{ generatedTargetedQuestions.length }} 题 · 每题 20 分</span>
+                </div>
+              </div>
+
+              <!-- 题目列表 -->
+              <div class="space-y-4">
+                <div v-for="(q, qi) in generatedTargetedQuestions" :key="`${targetedCourseKey}_paper_${qi}`"
+                  class="rounded-2xl border overflow-hidden transition-all"
+                  :class="!examSubmitted ? 'border-slate-100'
+                         : examAnswers[qi] === q.correct ? 'border-emerald-200' : 'border-red-200'">
+                  <!-- 题干 -->
+                  <div class="px-4 py-3 flex items-start gap-2"
+                    :class="!examSubmitted ? 'bg-violet-50'
+                           : examAnswers[qi] === q.correct ? 'bg-emerald-50' : 'bg-red-50'">
+                    <span class="flex-shrink-0 w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center mt-0.5"
+                      :class="!examSubmitted ? 'bg-violet-200 text-violet-700'
+                             : examAnswers[qi] === q.correct ? 'bg-emerald-400 text-white' : 'bg-red-400 text-white'">
+                      {{ qi + 1 }}
+                    </span>
+                    <p class="text-sm font-semibold text-slate-800 leading-snug">{{ q.question }}</p>
+                  </div>
+                  <!-- 选项 -->
+                  <div class="px-4 py-3 bg-white grid grid-cols-2 gap-2.5">
+                    <button v-for="(opt, oi) in q.options" :key="oi"
+                      @click="selectExamAnswer(qi, oi)"
+                      class="px-3 py-2.5 rounded-xl border text-xs text-left transition-all"
+                      :class="getExamOptionClass(qi, oi)"
+                      :disabled="examSubmitted">
+                      <span class="font-black mr-1">{{ ['A','B','C','D'][oi] }}.</span>{{ opt }}
+                    </button>
+                  </div>
+                  <!-- 提交后：正确答案解析 -->
+                  <div v-if="examSubmitted" class="px-4 pb-3">
+                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                      <span class="font-black text-emerald-600">✓ 正确答案：{{ ['A','B','C','D'][q.correct] }}</span>
+                      <span v-if="q.explanation" class="ml-2 text-slate-400">{{ q.explanation }}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 提交按钮 -->
+              <div v-if="!examSubmitted" class="mt-5 flex items-center justify-between">
+                <p class="text-xs text-slate-400">
+                  已作答
+                  <b class="text-violet-600">{{ Object.keys(examAnswers).length }}</b>
+                  / {{ generatedTargetedQuestions.length }} 题
+                </p>
+                <button @click="submitExam"
+                  :disabled="Object.keys(examAnswers).length < generatedTargetedQuestions.length"
+                  class="px-6 py-2.5 bg-violet-600 text-white text-sm font-black rounded-2xl
+                         transition-all shadow-lg shadow-violet-200
+                         disabled:opacity-40 disabled:cursor-not-allowed
+                         enabled:hover:bg-violet-700 enabled:hover:shadow-xl">
+                  提交试卷 →
+                </button>
+              </div>
+
+              <!-- 提交后：成绩看板 -->
+              <div v-else class="mt-6 bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+
+                <!-- 顶部状态条 -->
+                <div class="h-1 w-full"
+                  :class="examScore >= 80 ? 'bg-gradient-to-r from-emerald-300 to-teal-300'
+                         : examScore >= 60 ? 'bg-gradient-to-r from-amber-300 to-yellow-200'
+                         :                   'bg-gradient-to-r from-rose-300 to-pink-200'">
+                </div>
+
+                <div class="p-5">
+                  <!-- 主体：左右分栏 -->
+                  <div class="flex items-center gap-6">
+
+                    <!-- 左：环形仪表盘 -->
+                    <div class="flex-shrink-0 relative w-28 h-28">
+                      <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                        <!-- 轨道 -->
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="#f1f5f9" stroke-width="10"/>
+                        <!-- 进度 -->
+                        <circle cx="50" cy="50" r="40" fill="none"
+                          :stroke="examScore >= 80 ? '#6ee7b7' : examScore >= 60 ? '#fcd34d' : '#fca5a5'"
+                          stroke-width="10" stroke-linecap="round"
+                          :stroke-dasharray="`${examScore * 2.513} 251.3`"
+                          style="transition: stroke-dasharray 0.8s cubic-bezier(.4,0,.2,1)"/>
+                      </svg>
+                      <!-- 中心数字 -->
+                      <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-2xl font-black leading-none"
+                          :class="examScore >= 80 ? 'text-emerald-500'
+                                 : examScore >= 60 ? 'text-amber-500'
+                                 :                   'text-rose-400'"
+                          style="font-variant-numeric: tabular-nums;">
+                          {{ examScore }}
+                        </span>
+                        <span class="text-[10px] text-slate-300 font-bold mt-0.5">/100</span>
+                      </div>
+                    </div>
+
+                    <!-- 右：数据网格 + 鼓励语 -->
+                    <div class="flex-1 min-w-0">
+                      <!-- 鼓励语 + 经验值同行 -->
+                      <div class="flex items-center gap-2 mb-3">
+                        <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full"
+                          :class="examScore >= 80 ? 'bg-emerald-50 text-emerald-600'
+                                 : examScore >= 60 ? 'bg-amber-50 text-amber-600'
+                                 :                   'bg-rose-50 text-rose-500'">
+                          {{ examScore >= 80 ? '🎉 优秀，继续保持！' : examScore >= 60 ? '👍 良好，还有提升空间' : '💪 加油，针对错题再练练' }}
+                        </span>
+                        <span class="inline-flex items-center gap-1 bg-gradient-to-r from-violet-50 to-purple-50
+                                     border border-violet-100 rounded-full px-2.5 py-1 text-[11px] font-black text-violet-600">
+                          <span class="animate-bounce">⚡</span>+{{ examXp }} 经验值
+                        </span>
+                      </div>
+
+                      <!-- 三格数据 -->
+                      <div class="grid grid-cols-3 gap-2">
+                        <!-- 答对 -->
+                        <div class="bg-emerald-50 rounded-2xl px-3 py-2.5 text-center">
+                          <p class="text-base font-black text-emerald-500 leading-none">{{ examScore / 20 }}</p>
+                          <p class="text-[10px] text-emerald-400 mt-1 font-medium">✓ 答对</p>
+                        </div>
+                        <!-- 答错 -->
+                        <div class="bg-rose-50 rounded-2xl px-3 py-2.5 text-center">
+                          <p class="text-base font-black text-rose-400 leading-none">{{ generatedTargetedQuestions.length - examScore / 20 }}</p>
+                          <p class="text-[10px] text-rose-300 mt-1 font-medium">✗ 答错</p>
+                        </div>
+                        <!-- 得分率 -->
+                        <div class="bg-violet-50 rounded-2xl px-3 py-2.5 text-center">
+                          <p class="text-base font-black text-violet-500 leading-none">{{ examScore }}%</p>
+                          <p class="text-[10px] text-violet-300 mt-1 font-medium">得分率</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- AI 靶向补弱入口 -->
+                  <div v-if="examScore < 100"
+                    class="mt-3 flex items-center gap-2.5 bg-amber-50 border border-amber-100
+                           rounded-2xl px-4 py-2.5 cursor-pointer hover:bg-amber-100 transition-colors group">
+                    <span class="text-sm flex-shrink-0">🎯</span>
+                    <p class="text-xs text-amber-700 leading-snug flex-1">
+                      AI 发现你在
+                      <b class="font-black">{{ examScore < 60 ? '函数单调性' : '综合应用' }}</b>
+                      上失分较多，建议回顾对应课程
+                    </p>
+                    <svg class="w-4 h-4 text-amber-400 flex-shrink-0 transition-transform group-hover:translate-x-0.5"
+                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                  </div>
+
+                  <!-- 底部操作 -->
+                  <div class="mt-4 flex items-center justify-end gap-2">
+                    <button @click="generateTargetedQuiz"
+                      class="px-4 py-2 text-xs font-black text-violet-500 border border-violet-200
+                             rounded-2xl hover:bg-violet-50 transition-colors flex items-center gap-1.5">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                      </svg>
+                      重新生成试卷
+                    </button>
+                    <button @click="saveTest"
+                      :disabled="testSaved"
+                      class="px-4 py-2 text-xs font-black rounded-2xl flex items-center gap-1.5 transition-all"
+                      :class="testSaved
+                        ? 'bg-emerald-50 text-emerald-500 border border-emerald-200 cursor-default'
+                        : 'bg-violet-600 text-white hover:bg-violet-700 shadow-sm shadow-violet-200'">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                          d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                      </svg>
+                      {{ testSaved ? '已存档' : '保存本次测试' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
             <div v-else class="text-center py-10 text-slate-300">
               <p class="text-5xl mb-3">📝</p>
@@ -1076,8 +1263,8 @@
                     <h2 class="text-sm font-black text-slate-800">艾宾浩斯智能抽查</h2>
                     <span class="text-xs bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full font-bold">🧠 AI 驱动</span>
                   </div>
-                  <p class="text-xs text-slate-400 leading-relaxed max-w-sm">
-                    基于遗忘曲线模型，AI 已从你过去 30 天的历史薄弱点中智能筛选了 <strong class="text-slate-600">8 道</strong>待复习题目。
+                  <p class="text-xs text-slate-400 leading-relaxed max-w-sm whitespace-nowrap">
+                    基于遗忘曲线模型，AI 已从你过去 30 天的历史薄弱点中智能筛选了 <span class="whitespace-nowrap"><strong class="text-slate-600">8 道</strong>待复习题目</span>。
                   </p>
                 </div>
                 <button @click="startRandomReview" class="px-5 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 text-white text-sm font-black rounded-2xl hover:shadow-xl hover:scale-105 transition-all whitespace-nowrap">
@@ -1758,7 +1945,7 @@
           <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
             <!-- Tab 导航栏 -->
             <div class="flex items-center border-b border-slate-100 px-5 gap-1">
-              <button v-for="tab in [{v:'courses',l:'我的课程'},{v:'notes',l:'我的笔记'},{v:'mistakes',l:'全部错题'}]" :key="tab.v"
+              <button v-for="tab in [{v:'courses',l:'我的课程'},{v:'notes',l:'我的笔记'},{v:'mistakes',l:'错题记录'},{v:'tests',l:'我的测试'}]" :key="tab.v"
                 @click="profileTab = tab.v; if(tab.v !== 'mistakes') heatmapFilterDate = null"
                 class="px-4 py-3.5 text-sm font-bold transition-all border-b-2 -mb-px mr-1 whitespace-nowrap"
                 :class="profileTab === tab.v
@@ -1773,6 +1960,9 @@
                 </span>
                 <span v-if="tab.v === 'mistakes'" class="ml-1.5 text-xs bg-rose-100 text-rose-500 px-1.5 py-0.5 rounded-full font-black">
                   {{ myMistakes.length }}
+                </span>
+                <span v-if="tab.v === 'tests' && myTests.length > 0" class="ml-1.5 text-xs bg-violet-100 text-violet-500 px-1.5 py-0.5 rounded-full font-black">
+                  {{ myTests.length }}
                 </span>
               </button>
 
@@ -1822,13 +2012,23 @@
                 </div>
               </Transition>
 
-              <!-- 日期过滤徽章（错题 tab） -->
+              <!-- 右侧工具栏：错题 tab 时显示搜索+日期筛选 -->
               <Transition name="slide-up">
-                <div v-if="heatmapFilterDate && profileTab === 'mistakes'"
-                  class="ml-auto flex items-center gap-1.5 text-xs bg-rose-50 text-rose-600 border border-rose-100 px-2.5 py-1 rounded-full font-semibold">
-                  <span class="w-2 h-2 rounded-full bg-rose-400"></span>
-                  {{ heatmapFilterDate }} 错题
-                  <button @click="heatmapFilterDate = null" class="ml-1 text-rose-400 hover:text-rose-600 font-black">✕</button>
+                <div v-if="profileTab === 'mistakes'" class="ml-auto flex items-center gap-1.5 flex-shrink-0">
+                  <div class="relative">
+                    <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input v-model="mistakesSearch" placeholder="搜索错题…"
+                      class="pl-7 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl
+                             w-36 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent transition-all"/>
+                  </div>
+                  <div v-if="heatmapFilterDate"
+                    class="flex items-center gap-1.5 text-xs bg-rose-50 text-rose-600 border border-rose-100 px-2.5 py-1 rounded-full font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+                    {{ heatmapFilterDate }} 错题
+                    <button @click="heatmapFilterDate = null" class="ml-1 text-rose-400 hover:text-rose-600 font-black">✕</button>
+                  </div>
                 </div>
               </Transition>
             </div>
@@ -2025,59 +2225,186 @@
 
               <!-- ▸ 全部错题（支持热力图日期过滤） -->
               <template v-else-if="profileTab === 'mistakes'">
-                <div v-if="profileMistakesFiltered.length === 0" class="text-center py-10">
-                  <p class="text-4xl mb-3">{{ heatmapFilterDate ? '🔍' : '✅' }}</p>
-                  <p class="text-sm font-bold text-slate-500 mb-1">
-                    {{ heatmapFilterDate ? heatmapFilterDate + ' 当天没有错题记录' : '暂无错题记录' }}
-                  </p>
-                  <button v-if="heatmapFilterDate" @click="heatmapFilterDate = null"
-                    class="mt-2 text-xs text-violet-500 font-semibold hover:underline">
-                    清除过滤，查看全部
-                  </button>
-                </div>
-                <div v-else class="space-y-3">
-                  <div v-for="m in profileMistakesFiltered" :key="m.id"
-                    class="rounded-2xl border border-slate-100 overflow-hidden">
-                    <div class="px-4 pt-3.5 pb-3 bg-red-50">
-                      <div class="flex items-center justify-between mb-1.5">
-                        <span class="text-xs font-bold text-red-500">{{ m.subject }} · {{ m.course }}</span>
-                        <span class="text-xs text-slate-400">{{ m.createdAt }}</span>
-                      </div>
-                      <p class="text-sm font-black text-slate-800">{{ m.question }}</p>
-                    </div>
-                    <div class="px-4 py-3 bg-white space-y-1.5">
-                      <div v-for="(opt, idx) in m.options" :key="idx"
-                        class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold"
-                        :class="idx === m.correct ? 'bg-emerald-50 text-emerald-700' : idx === m.selected ? 'bg-red-50 text-red-600' : 'text-slate-400'">
-                        <span v-if="idx === m.correct" class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
-                          <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                <div class="flex -m-5 min-h-[360px]">
+                  <div class="w-[30%] flex-shrink-0 border-r border-slate-100 flex flex-col">
+                    <div class="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
+                      <button
+                        @click="mistakesCourseFilter = ''"
+                        class="w-full flex items-center justify-between px-3 py-3.5 rounded-xl text-left transition-all"
+                        :class="mistakesCourseFilter === ''
+                          ? 'bg-rose-50 text-rose-700'
+                          : 'text-slate-600 hover:bg-slate-50'">
+                        <span class="text-xs font-bold">全部错题</span>
+                        <span class="text-[10px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0"
+                          :class="mistakesCourseFilter === '' ? 'bg-rose-200 text-rose-700' : 'bg-slate-100 text-slate-400'">
+                          {{ myMistakes.length }}
                         </span>
-                        <span v-else-if="idx === m.selected" class="w-4 h-4 rounded-full bg-red-400 flex items-center justify-center flex-shrink-0">
-                          <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </span>
-                        <span v-else class="w-4 h-4 rounded-full border border-slate-200 flex-shrink-0"></span>
-                        <span>{{ ['A','B','C','D'][idx] }}. {{ opt }}</span>
-                        <span v-if="idx === m.selected && idx !== m.correct" class="ml-auto text-xs text-red-400 font-bold flex-shrink-0">我的答案</span>
-                        <span v-if="idx === m.correct" class="ml-auto text-xs text-emerald-500 font-bold flex-shrink-0">正确答案</span>
-                      </div>
-                    </div>
-                    <div class="px-4 pb-3.5 bg-white">
-                      <button @click="m.showAIHint = !m.showAIHint"
-                        class="w-full py-2 rounded-xl text-xs font-black transition-all"
-                        :class="m.showAIHint
-                          ? 'bg-violet-100 text-violet-700'
-                          : 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md shadow-violet-200/60 hover:shadow-lg'">
-                        🤖 {{ m.showAIHint ? '收起 AI 启发思路' : 'AI 启发思路' }}
                       </button>
-                      <Transition name="slide-up">
-                        <div v-if="m.showAIHint"
-                          class="mt-2.5 px-3.5 py-3 bg-violet-50 rounded-xl border border-violet-100 text-xs text-violet-800 leading-relaxed">
-                          {{ m.aiHint }}
+                      <div class="py-1"><div class="border-t border-slate-100"></div></div>
+                      <button v-for="item in mistakesByCourse" :key="item.course"
+                        @click="mistakesCourseFilter = item.course"
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all"
+                        :class="mistakesCourseFilter === item.course
+                          ? 'bg-rose-50 text-rose-700'
+                          : 'text-slate-600 hover:bg-slate-50'">
+                        <div class="flex items-center gap-2 min-w-0">
+                          <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors"
+                            :class="mistakesCourseFilter === item.course ? 'bg-rose-500' : 'bg-slate-300'"></span>
+                          <span class="text-xs font-semibold truncate">{{ item.course }}</span>
                         </div>
-                      </Transition>
+                        <span class="text-[10px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1"
+                          :class="mistakesCourseFilter === item.course ? 'bg-rose-200 text-rose-700' : 'bg-slate-100 text-slate-400'">
+                          {{ item.count }}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="flex-1 p-4 overflow-y-auto">
+                    <div v-if="profileMistakesFiltered.length === 0" class="flex flex-col items-center justify-center h-full py-12">
+                      <p class="text-4xl mb-3">{{ heatmapFilterDate ? '🔍' : '📭' }}</p>
+                      <p class="text-sm font-bold text-slate-500 mb-1">
+                        {{ heatmapFilterDate ? heatmapFilterDate + ' 当天无匹配错题' : mistakesCourseFilter || mistakesSearch ? '暂无匹配错题' : '暂无错题记录' }}
+                      </p>
+                      <button v-if="heatmapFilterDate" @click="heatmapFilterDate = null"
+                        class="mt-2 text-xs text-violet-500 font-semibold hover:underline">
+                        清除日期过滤
+                      </button>
+                    </div>
+                    <div v-else class="space-y-3">
+                      <div v-for="m in profileMistakesFiltered" :key="m.id"
+                        class="rounded-2xl border border-slate-100 overflow-hidden">
+                        <div class="px-4 pt-3.5 pb-3 bg-red-50">
+                          <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-xs font-bold text-red-500">{{ m.subject }} · {{ m.course }}</span>
+                            <span class="text-xs text-slate-400">{{ m.createdAt }}</span>
+                          </div>
+                          <p class="text-sm font-black text-slate-800">{{ m.question }}</p>
+                        </div>
+                        <div class="px-4 py-3 bg-white space-y-1.5">
+                          <div v-for="(opt, idx) in m.options" :key="idx"
+                            class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold"
+                            :class="idx === m.correct ? 'bg-emerald-50 text-emerald-700' : idx === m.selected ? 'bg-red-50 text-red-600' : 'text-slate-400'">
+                            <span v-if="idx === m.correct" class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                              <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                            </span>
+                            <span v-else-if="idx === m.selected" class="w-4 h-4 rounded-full bg-red-400 flex items-center justify-center flex-shrink-0">
+                              <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </span>
+                            <span v-else class="w-4 h-4 rounded-full border border-slate-200 flex-shrink-0"></span>
+                            <span>{{ ['A','B','C','D'][idx] }}. {{ opt }}</span>
+                            <span v-if="idx === m.selected && idx !== m.correct" class="ml-auto text-xs text-red-400 font-bold flex-shrink-0">我的答案</span>
+                            <span v-if="idx === m.correct" class="ml-auto text-xs text-emerald-500 font-bold flex-shrink-0">正确答案</span>
+                          </div>
+                        </div>
+                        <div class="px-4 pb-3.5 bg-white">
+                          <button @click="m.showAIHint = !m.showAIHint"
+                            class="w-full py-2 rounded-xl text-xs font-black transition-all"
+                            :class="m.showAIHint
+                              ? 'bg-violet-100 text-violet-700'
+                              : 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md shadow-violet-200/60 hover:shadow-lg'">
+                            🤖 {{ m.showAIHint ? '收起 AI 启发思路' : 'AI 启发思路' }}
+                          </button>
+                          <Transition name="slide-up">
+                            <div v-if="m.showAIHint"
+                              class="mt-2.5 px-3.5 py-3 bg-violet-50 rounded-xl border border-violet-100 text-xs text-violet-800 leading-relaxed">
+                              {{ m.aiHint }}
+                            </div>
+                          </Transition>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
+              </template>
+
+              <!-- ▸ 我的测试 -->
+              <template v-else-if="profileTab === 'tests'">
+
+                <!-- 空状态 -->
+                <div v-if="myTests.length === 0" class="text-center py-14">
+                  <p class="text-4xl mb-3">📋</p>
+                  <p class="text-sm font-bold text-slate-500 mb-1">暂无测试记录</p>
+                  <p class="text-xs text-slate-400 mb-4">完成复习题库中的试卷后点击「保存本次测试」</p>
+                  <button @click="switchView('review')"
+                    class="px-5 py-2 bg-violet-600 text-white text-xs font-black rounded-xl hover:bg-violet-700 transition-colors">
+                    去做题 →
+                  </button>
+                </div>
+
+                <template v-else>
+                  <!-- 统计概览行 -->
+                  <div class="flex items-center gap-4 mb-4 px-1">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-xs text-slate-400">已完成</span>
+                      <span class="text-sm font-black text-violet-600">{{ myTests.length }}</span>
+                      <span class="text-xs text-slate-400">次测试</span>
+                    </div>
+                    <div class="w-px h-3 bg-slate-200"></div>
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-xs text-slate-400">平均分</span>
+                      <span class="text-sm font-black"
+                        :class="testStatsAvg >= 80 ? 'text-emerald-500' : testStatsAvg >= 60 ? 'text-amber-500' : 'text-rose-400'">
+                        {{ testStatsAvg }}
+                      </span>
+                    </div>
+                    <div class="w-px h-3 bg-slate-200"></div>
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-xs text-slate-400">最高分</span>
+                      <span class="text-sm font-black text-violet-600">{{ testStatsMax }}</span>
+                    </div>
+                  </div>
+
+                  <!-- 列表 -->
+                  <div class="space-y-1">
+                    <div v-for="t in myTests" :key="t.id"
+                      class="flex items-center gap-4 px-3 py-3.5 rounded-2xl transition-all group hover:bg-slate-50 cursor-pointer">
+
+                      <!-- 学科图标 -->
+                      <div class="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 text-lg"
+                        :class="t.subject==='数学' ? 'bg-violet-50'
+                               : t.subject==='语文' ? 'bg-emerald-50'
+                               : t.subject==='英语' ? 'bg-blue-50'
+                               :                      'bg-amber-50'">
+                        {{ t.subject==='数学' ? '📐' : t.subject==='语文' ? '📖' : t.subject==='英语' ? '🔤' : '📚' }}
+                      </div>
+
+                      <!-- 中间：标题 + 时间 -->
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-slate-800 truncate">{{ t.title }}</p>
+                        <div class="flex items-center gap-2 mt-0.5">
+                          <span class="text-xs text-slate-400">{{ t.createdAt }}</span>
+                          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                            :class="t.accuracy >= 80 ? 'bg-emerald-50 text-emerald-600'
+                                   : t.accuracy >= 60 ? 'bg-amber-50 text-amber-500'
+                                   :                    'bg-rose-50 text-rose-500'">
+                            {{ t.accuracy >= 80 ? '表现优异' : t.accuracy >= 60 ? '基本掌握' : '建议重练' }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <!-- 右侧：分数 + hover 操作 -->
+                      <div class="flex items-center gap-3 flex-shrink-0">
+                        <div class="text-right">
+                          <span class="text-xl font-black leading-none"
+                            :class="t.score >= 80 ? 'text-emerald-500'
+                                   : t.score >= 60 ? 'text-amber-500'
+                                   :                 'text-rose-400'">
+                            {{ t.score }}
+                          </span>
+                          <span class="text-xs text-slate-300 font-bold">/100</span>
+                        </div>
+                        <!-- hover 查看详情 -->
+                        <span @click.stop="openTestDetail(t)"
+                          class="text-xs font-black text-violet-500 opacity-0 group-hover:opacity-100
+                                 transition-opacity whitespace-nowrap hover:underline">
+                          查看详情 →
+                        </span>
+                      </div>
+
+                    </div>
+                  </div>
+                </template>
+
               </template>
 
             </div>
@@ -2422,6 +2749,21 @@
     </div>
   </Transition>
 
+  <!-- ── 测试存档 Toast ── -->
+  <Transition name="toast-up">
+    <div v-if="showSaveTestToast"
+      class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[150]
+             flex items-center gap-3 bg-slate-900 text-white
+             px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold whitespace-nowrap">
+      <span class="text-lg">✅</span>
+      报告已存档至
+      <span class="text-violet-300 font-black cursor-pointer"
+        @click="profileTab='tests'; switchView('profile')">
+        个人中心 · 我的测试
+      </span>
+    </div>
+  </Transition>
+
   <!-- ── 热力图方格 Toast ── -->
   <Transition name="toast-up">
     <div v-if="showHeatmapToast"
@@ -2429,6 +2771,83 @@
              flex items-center gap-3 bg-slate-900 text-white
              px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold whitespace-nowrap">
       {{ heatmapToastMsg }}
+    </div>
+  </Transition>
+
+  <!-- ── 测试详情弹窗 ── -->
+  <Transition name="modal">
+    <div v-if="showTestDetailModal && activeTestRecord"
+      class="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      @click.self="showTestDetailModal = false">
+      <div class="bg-white rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh]">
+
+        <!-- 弹窗头部 -->
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
+          <div>
+            <p class="text-sm font-black text-slate-800">{{ activeTestRecord.title }}</p>
+            <p class="text-xs text-slate-400 mt-0.5">{{ activeTestRecord.createdAt }} · 共 {{ activeTestRecord.questions.length }} 题</p>
+          </div>
+          <!-- 分数环 -->
+          <div class="flex items-center gap-3">
+            <div class="text-right">
+              <span class="text-2xl font-black leading-none"
+                :class="activeTestRecord.score >= 80 ? 'text-emerald-500'
+                       : activeTestRecord.score >= 60 ? 'text-amber-500'
+                       :                                'text-rose-400'">
+                {{ activeTestRecord.score }}
+              </span>
+              <span class="text-xs text-slate-300 font-bold">/100</span>
+              <p class="text-[10px] text-slate-400 mt-0.5">
+                对 {{ activeTestRecord.correct }} · 错 {{ activeTestRecord.wrong }}
+              </p>
+            </div>
+            <button @click="showTestDetailModal = false"
+              class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors flex-shrink-0">
+              <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 题目列表（可滚动） -->
+        <div class="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+          <div v-for="(q, qi) in activeTestRecord.questions" :key="qi"
+            class="rounded-2xl border overflow-hidden"
+            :class="activeTestRecord.answers[qi] === q.correct ? 'border-emerald-200' : 'border-rose-200'">
+            <!-- 题干 -->
+            <div class="px-4 py-3 flex items-start gap-2"
+              :class="activeTestRecord.answers[qi] === q.correct ? 'bg-emerald-50' : 'bg-rose-50'">
+              <span class="flex-shrink-0 w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center mt-0.5"
+                :class="activeTestRecord.answers[qi] === q.correct ? 'bg-emerald-400 text-white' : 'bg-rose-400 text-white'">
+                {{ qi + 1 }}
+              </span>
+              <p class="text-sm font-semibold text-slate-800 leading-snug">{{ q.question }}</p>
+            </div>
+            <!-- 选项 -->
+            <div class="px-4 py-3 bg-white grid grid-cols-2 gap-2">
+              <div v-for="(opt, oi) in q.options" :key="oi"
+                class="px-3 py-2 rounded-xl border text-xs"
+                :class="oi === q.correct
+                  ? 'border-emerald-400 bg-emerald-50 text-emerald-700 font-bold'
+                  : oi === activeTestRecord.answers[qi] && oi !== q.correct
+                    ? 'border-rose-400 bg-rose-50 text-rose-600 font-bold'
+                    : 'border-slate-100 text-slate-400'">
+                <span class="font-black mr-1">{{ ['A','B','C','D'][oi] }}.</span>{{ opt }}
+                <span v-if="oi === q.correct" class="ml-1 text-emerald-500">✓</span>
+                <span v-else-if="oi === activeTestRecord.answers[qi] && oi !== q.correct" class="ml-1 text-rose-400">✗</span>
+              </div>
+            </div>
+            <!-- 解析 -->
+            <div v-if="q.explanation" class="px-4 pb-3">
+              <p class="text-[11px] text-slate-400 leading-relaxed">
+                <span class="font-black text-slate-500">解析：</span>{{ q.explanation }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
   </Transition>
 
@@ -2539,6 +2958,48 @@ const currentQuizIndex = ref(0)
 const selectedAnswer = ref(null)
 const showExplanation = ref(false)
 const searchQuery = ref('')
+const isGeneratingTargetedQuiz = ref(false)
+const targetedCourseKey = ref('math_func')
+const targetedGenerateStep = ref(0)
+const generatedTargetedQuestions = ref([])
+let _targetedGenerateTimer = null
+
+// ── 试卷答题状态 ──
+const examAnswers   = ref({})   // { [题目索引]: 选项索引 }
+const examSubmitted = ref(false)
+
+const examScore = computed(() =>
+  generatedTargetedQuestions.value.filter((q, i) => examAnswers.value[i] === q.correct).length * 20
+)
+const examXp = computed(() => {
+  const s = examScore.value
+  if (s >= 80) return 50
+  if (s >= 60) return 30
+  return 10
+})
+
+function selectExamAnswer(qi, oi) {
+  if (examSubmitted.value) return
+  examAnswers.value = { ...examAnswers.value, [qi]: oi }
+}
+
+function submitExam() {
+  if (Object.keys(examAnswers.value).length < generatedTargetedQuestions.value.length) return
+  examSubmitted.value = true
+}
+
+function getExamOptionClass(qi, oi) {
+  const selected = examAnswers.value[qi]
+  const correct  = generatedTargetedQuestions.value[qi]?.correct
+  if (!examSubmitted.value) {
+    if (selected === oi)
+      return 'border-violet-500 bg-violet-50 text-violet-700 font-bold'
+    return 'border-slate-200 text-slate-600 bg-white hover:border-violet-300 hover:bg-violet-50 cursor-pointer'
+  }
+  if (oi === correct)  return 'border-emerald-500 bg-emerald-50 text-emerald-700 font-bold'
+  if (selected === oi) return 'border-red-400 bg-red-50 text-red-600 font-bold'
+  return 'border-slate-200 text-slate-300 bg-white'
+}
 
 // ── Focus Mode ──
 const focusMode = ref(false)
@@ -2600,6 +3061,96 @@ const myMistakes = ref([
     showAIHint: false,
     aiHint: '你选了 A（x=−1）。注意对称轴公式 x=−b/(2a)，这里 a=1，b=−2，代入算算？负负得正，方向别算反了哦～',
   },
+  {
+    id: 3,
+    question: '若 a+b=7, ab=10，则一元二次方程 x²-7x+10=0 的两根是？',
+    options: ['2 和 5', '3 和 4', '-2 和 -5', '1 和 10'],
+    selected: 1, correct: 0,
+    subject: '数学', course: '初中数学函数专线', createdAt: '04/22 11:26',
+    showAIHint: false,
+    aiHint: '可先试因式分解：x²-7x+10=(x-2)(x-5)。看到常数项 10 时，优先想“乘积为 10、和为 7”的两个数。',
+  },
+  {
+    id: 4,
+    question: '已知直线 y=2x+1，当 x=3 时，y 等于多少？',
+    options: ['5', '6', '7', '8'],
+    selected: 1, correct: 2,
+    subject: '数学', course: '初中数学函数专线', createdAt: '04/22 20:09',
+    showAIHint: false,
+    aiHint: '代入时别漏掉常数项：y=2*3+1=7。你可能只算了 2*3。',
+  },
+  {
+    id: 5,
+    question: 'What is the correct past tense of "teach"?',
+    options: ['teached', 'taught', 'teacheded', 'teacht'],
+    selected: 0, correct: 1,
+    subject: '英语', course: '英语语法冲刺营', createdAt: '04/18 19:42',
+    showAIHint: false,
+    aiHint: 'teach 属于不规则动词，过去式是 taught。可和 catch-caught, buy-bought 一起记忆。',
+  },
+  {
+    id: 6,
+    question: 'Choose the best answer: She ____ to school by bus every day.',
+    options: ['go', 'goes', 'going', 'went'],
+    selected: 0, correct: 1,
+    subject: '英语', course: '英语语法冲刺营', createdAt: '04/19 08:17',
+    showAIHint: false,
+    aiHint: '主语是第三人称单数 She，且 every day 表示一般现在时，所以动词要用 goes。',
+  },
+  {
+    id: 7,
+    question: '阅读句子：He has finished his homework. 该句时态是？',
+    options: ['一般过去时', '现在进行时', '现在完成时', '一般将来时'],
+    selected: 0, correct: 2,
+    subject: '英语', course: '英语阅读理解训练', createdAt: '04/21 16:03',
+    showAIHint: false,
+    aiHint: 'has + 过去分词 finished 是现在完成时的典型结构，注意与一般过去时的区别。',
+  },
+  {
+    id: 8,
+    question: '“会当凌绝顶，一览众山小”出自哪位诗人？',
+    options: ['李白', '杜甫', '王维', '白居易'],
+    selected: 0, correct: 1,
+    subject: '语文', course: '语文现代文阅读体系', createdAt: '04/17 14:21',
+    showAIHint: false,
+    aiHint: '这句出自杜甫《望岳》。“会当凌绝顶”体现其积极进取的情怀，可和《春望》对比记忆。',
+  },
+  {
+    id: 9,
+    question: '下列词语中没有错别字的一项是？',
+    options: ['迫不急待', '再接再厉', '谈笑风声', '一愁莫展'],
+    selected: 2, correct: 1,
+    subject: '语文', course: '语文现代文阅读体系', createdAt: '04/20 09:48',
+    showAIHint: false,
+    aiHint: '常见易错：迫不及待、谈笑风生、一筹莫展。可以把“及、生、筹”标红做错词本。',
+  },
+  {
+    id: 10,
+    question: '“比喻”和“拟人”都属于哪一类修辞？',
+    options: ['说明方法', '表达方式', '修辞手法', '描写角度'],
+    selected: 1, correct: 2,
+    subject: '语文', course: '语文写作表达提升', createdAt: '04/22 07:55',
+    showAIHint: false,
+    aiHint: '比喻、拟人、排比、夸张都属于修辞手法；记叙、说明、议论才是表达方式。',
+  },
+  {
+    id: 11,
+    question: '若函数 y=(k-1)x+k²-1 是一次函数，则 k 不能等于？',
+    options: ['-1', '0', '1', '2'],
+    selected: 0, correct: 2,
+    subject: '数学', course: '中考压轴题突破', createdAt: '04/16 21:37',
+    showAIHint: false,
+    aiHint: '一次函数要求 x 的系数不为 0，即 k-1 != 0，所以 k 不能取 1。',
+  },
+  {
+    id: 12,
+    question: 'Which word is closest in meaning to "rapid"?',
+    options: ['slow', 'quick', 'quiet', 'weak'],
+    selected: 3, correct: 1,
+    subject: '英语', course: '英语阅读理解训练', createdAt: '04/15 18:12',
+    showAIHint: false,
+    aiHint: 'rapid = fast/quick。可通过反义词 slow 来排除，提升词义辨析速度。',
+  },
 ])
 
 // ── User ──
@@ -2637,10 +3188,6 @@ const navItems = [
   {
     view: 'profile', label: '个人中心',
     icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>'
-  },
-  {
-    view: 'mistakes', label: '错题本',
-    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/><line x1="9" y1="12" x2="15" y2="18" stroke-linecap="round" stroke-width="2"/><line x1="15" y1="12" x2="9" y2="18" stroke-linecap="round" stroke-width="2"/>'
   },
 ]
 
@@ -2795,8 +3342,47 @@ function enrollBasicCourse(course) {
 // 个人中心课程 tab (legacy, kept for profileEnrolledList computed)
 const profileCourseTab = ref('basic')
 
-// ── 个人中心新版 profileTab (3-tab: courses | notes | mistakes) ──
+// ── 个人中心新版 profileTab (4-tab: courses | notes | mistakes | tests) ──
 const profileTab = ref('courses')
+
+// ── 我的测试 ──
+const myTests          = ref([])
+const showSaveTestToast = ref(false)
+const testSaved        = ref(false)   // 防重复保存，每次生成新试卷后重置
+
+const testStatsAvg = computed(() =>
+  myTests.value.length ? Math.round(myTests.value.reduce((s, t) => s + t.score, 0) / myTests.value.length) : 0
+)
+const testStatsMax = computed(() =>
+  myTests.value.length ? Math.max(...myTests.value.map(t => t.score)) : 0
+)
+
+const showTestDetailModal = ref(false)
+const activeTestRecord    = ref(null)
+function openTestDetail(t) { activeTestRecord.value = t; showTestDetailModal.value = true }
+
+function saveTest() {
+  if (testSaved.value) return
+  const now = new Date()
+  const pad = n => String(n).padStart(2, '0')
+  myTests.value.unshift({
+    id: Date.now(),
+    title: (targetedCourseOptions.find(c => c.key === targetedCourseKey.value)?.label ?? '模拟试卷') + ' · 自测',
+    subject: targetedCourseOptions.find(c => c.key === targetedCourseKey.value)?.subject ?? '数学',
+    score: examScore.value,
+    correct: examScore.value / 20,
+    wrong: generatedTargetedQuestions.value.length - examScore.value / 20,
+    accuracy: examScore.value,
+    xp: examXp.value,
+    createdAt: `${pad(now.getMonth()+1)}/${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`,
+    // 快照：题目 + 作答记录
+    questions: JSON.parse(JSON.stringify(generatedTargetedQuestions.value)),
+    answers:   { ...examAnswers.value },
+  })
+  testSaved.value = true
+  showSaveTestToast.value = true
+  setTimeout(() => { showSaveTestToast.value = false }, 3000)
+}
 
 // 热力图：最近 140 天 mock 数据（20 周，确定性伪随机，刷新不变）
 const HEATMAP_WEEKS = 20
@@ -2873,12 +3459,15 @@ function clickCell(cell) {
   }
 }
 
-// 错题按热力图日期过滤
-const profileMistakesFiltered = computed(() =>
-  heatmapFilterDate.value
-    ? myMistakes.value.filter(m => m.createdAt.startsWith(heatmapFilterDate.value))
-    : myMistakes.value
-)
+// 个人中心错题：课程 + 搜索 + 热力图日期筛选
+const profileMistakesFiltered = computed(() => {
+  let list = myMistakes.value
+  if (mistakesCourseFilter.value) list = list.filter(m => m.course === mistakesCourseFilter.value)
+  const q = mistakesSearch.value.trim().toLowerCase()
+  if (q) list = list.filter(m => m.question.toLowerCase().includes(q) || m.course.toLowerCase().includes(q))
+  if (heatmapFilterDate.value) list = list.filter(m => m.createdAt.startsWith(heatmapFilterDate.value))
+  return list
+})
 
 // 首页：单体基础课 + 每个已加入套系课当前 in-progress 节点（展开为独立卡片）
 const homeEnrolledCourses = computed(() => {
@@ -3204,7 +3793,7 @@ function goBack() {
 }
 
 // ── Quiz ──
-const quizQuestions = [
+const quizQuestions = ref([
   {
     question: '已知函数 f(x) = 2x + 3，当 x = 5 时，f(x) 的值为？',
     options: ['10', '13', '11', '15'],
@@ -3223,9 +3812,64 @@ const quizQuestions = [
     correct: 1,
     explanation: '由对称轴公式 x = -b/(2a) = -(-2)/(2×1) = 1，故选 B。'
   }
+])
+
+const targetedCourseOptions = [
+  { key: 'math_func', label: '初中数学-函数专题精讲', title: '初中数学函数专线', subject: '数学' },
+  { key: 'english_grammar', label: '英语语法精讲', title: '英语语法冲刺营', subject: '英语' },
+  { key: 'chinese_reading', label: '语文现代文阅读', title: '语文现代文阅读体系', subject: '语文' },
 ]
+const targetedGenerateTexts = [
+  '正在智能生成初中函数专题试题...',
+  '正在匹配你的历史薄弱知识点...',
+  '正在生成分层 AI 解析...',
+]
+const targetedQuestionBank = {
+  math_func: [
+    { question: '二次函数 y=x²-6x+5 的对称轴是？', options: ['x=6', 'x=3', 'x=-3', 'x=-6'], correct: 1, explanation: '对称轴 x=-b/(2a)= -(-6)/(2*1)=3。' },
+    { question: '已知一次函数 y=-2x+4，当 x=-1 时，y=？', options: ['-6', '2', '4', '6'], correct: 3, explanation: '代入得 y=-2*(-1)+4=6。' },
+    { question: '函数 y=(x-2)²+1 的顶点坐标是？', options: ['(2,1)', '(-2,1)', '(2,-1)', '(-2,-1)'], correct: 0, explanation: '顶点式 y=(x-h)²+k，顶点为(h,k)。' },
+    { question: '下列函数中，y 随 x 增大而减小的是？', options: ['y=3x+1', 'y=-x+2', 'y=x²', 'y=|x|'], correct: 1, explanation: '一次函数斜率 k<0 时单调递减。' },
+    { question: '已知抛物线 y=x²+2x-3，与 x 轴交点个数是？', options: ['0 个', '1 个', '2 个', '无法确定'], correct: 2, explanation: '判别式 Δ=b²-4ac=4+12=16>0，有两个交点。' },
+  ],
+  english_grammar: [
+    { question: 'He ____ his homework already.', options: ['finish', 'finishes', 'has finished', 'finished'], correct: 2, explanation: 'already 常与现在完成时连用，结构为 has/have + done。' },
+    { question: 'If it ____ tomorrow, we will stay at home.', options: ['rains', 'rained', 'will rain', 'rain'], correct: 0, explanation: 'if 引导条件状语从句用一般现在时表示将来。' },
+    { question: 'She enjoys ____ books before bed.', options: ['read', 'to read', 'reading', 'reads'], correct: 2, explanation: 'enjoy 后接动名词 doing。' },
+    { question: 'The book ____ by my teacher yesterday.', options: ['was given', 'is given', 'gave', 'gives'], correct: 0, explanation: 'yesterday 且主语是动作承受者，用一般过去时被动语态。' },
+    { question: 'My parents ____ TV when I got home.', options: ['watch', 'watched', 'were watching', 'are watching'], correct: 2, explanation: '过去某时正在进行，用过去进行时 were watching。' },
+  ],
+  chinese_reading: [
+    { question: '“借代”修辞最常见的作用是？', options: ['突出节奏', '以相关事物代本体', '加强反问语气', '表示对比'], correct: 1, explanation: '借代是“用相关事物名称代替本体”。' },
+    { question: '议论文中“分论点”主要用于？', options: ['制造悬念', '支撑中心论点', '描写场景', '交代背景'], correct: 1, explanation: '分论点是中心论点的展开与论证支点。' },
+    { question: '下列句子有语病的是？', options: ['我们要提高阅读能力。', '通过这次活动，使我受益匪浅。', '他按时完成了作业。', '同学们积极参与讨论。'], correct: 1, explanation: '“通过……使……”导致主语残缺，应删去“使”。' },
+    { question: '“会当凌绝顶，一览众山小”表达了诗人怎样的情感？', options: ['消极避世', '悲痛无奈', '积极进取', '淡泊宁静'], correct: 2, explanation: '体现诗人不畏艰难、积极进取的精神。' },
+    { question: '“排比”修辞在表达上的主要效果是？', options: ['增强语势', '降低节奏', '削弱感情', '说明概念'], correct: 0, explanation: '排比通过结构整齐的并列成分增强语势。' },
+  ],
+}
 
 function startQuiz() { quizStarted.value = true }
+function generateTargetedQuiz() {
+  if (isGeneratingTargetedQuiz.value) return
+  const picked = targetedCourseOptions.find(c => c.key === targetedCourseKey.value) || targetedCourseOptions[0]
+  selectedCourse.value = { title: picked.title, subject: picked.subject, teacher: 'AI 助教' }
+  generatedTargetedQuestions.value = []
+  examAnswers.value   = {}
+  examSubmitted.value = false
+  testSaved.value     = false
+  targetedGenerateStep.value = 0
+  isGeneratingTargetedQuiz.value = true
+  clearInterval(_targetedGenerateTimer)
+  _targetedGenerateTimer = setInterval(() => {
+    targetedGenerateStep.value = (targetedGenerateStep.value + 1) % targetedGenerateTexts.length
+  }, 700)
+  setTimeout(() => {
+    clearInterval(_targetedGenerateTimer)
+    const bank = targetedQuestionBank[picked.key] || targetedQuestionBank.math_func
+    generatedTargetedQuestions.value = bank.slice(0, 5)
+    isGeneratingTargetedQuiz.value = false
+  }, 1900)
+}
 function startRandomReview() {
   randomReviewStarted.value = true
   currentQuizIndex.value = 0
@@ -3233,6 +3877,10 @@ function startRandomReview() {
   showExplanation.value = false
 }
 function resetQuiz() {
+  clearInterval(_targetedGenerateTimer)
+  isGeneratingTargetedQuiz.value = false
+  targetedGenerateStep.value = 0
+  generatedTargetedQuestions.value = []
   quizStarted.value = false
   randomReviewStarted.value = false
   currentQuizIndex.value = 0
@@ -3243,7 +3891,7 @@ function selectAnswer(i) {
   if (selectedAnswer.value !== null) return
   selectedAnswer.value = i
   showExplanation.value = true
-  const q = quizQuestions[currentQuizIndex.value]
+  const q = quizQuestions.value[currentQuizIndex.value]
   if (i !== q.correct) {
     const already = myMistakes.value.find(m => m.question === q.question)
     if (!already) {
@@ -3265,7 +3913,7 @@ function selectAnswer(i) {
   }
 }
 function nextQuestion() {
-  if (currentQuizIndex.value < quizQuestions.length - 1) {
+  if (currentQuizIndex.value < quizQuestions.value.length - 1) {
     currentQuizIndex.value++
     selectedAnswer.value = null
     showExplanation.value = false
@@ -3274,7 +3922,7 @@ function nextQuestion() {
 function getOptionClass(i) {
   if (selectedAnswer.value === null)
     return 'border-slate-200 bg-white hover:border-violet-200 hover:bg-violet-50 text-slate-700'
-  if (i === quizQuestions[currentQuizIndex.value].correct)
+  if (i === quizQuestions.value[currentQuizIndex.value].correct)
     return 'border-emerald-300 bg-emerald-50 text-emerald-700'
   if (i === selectedAnswer.value)
     return 'border-red-300 bg-red-50 text-red-700'
@@ -3367,6 +4015,14 @@ function openNote(note) { activeNote.value = note; showNoteModal.value = true }
 const mistakesSearch   = ref('')
 const mistakesTag      = ref('全部')
 const mistakeTagList   = ['全部', '数学', '英语', '语文']
+const mistakesCourseFilter = ref('')
+const mistakesByCourse = computed(() => {
+  const map = {}
+  myMistakes.value.forEach(m => {
+    map[m.course] = (map[m.course] || 0) + 1
+  })
+  return Object.entries(map).map(([course, count]) => ({ course, count }))
+})
 const filteredMistakes = computed(() => {
   let list = myMistakes.value
   if (mistakesTag.value !== '全部') list = list.filter(m => m.subject === mistakesTag.value)
