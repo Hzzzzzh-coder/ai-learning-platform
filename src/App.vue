@@ -493,11 +493,22 @@
 
             <!-- Ongoing Courses -->
             <div class="col-span-2 bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
-              <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center justify-between mb-3">
                 <h2 class="text-sm font-black text-slate-800">在学课程</h2>
                 <button @click="goToProfileBasic()"
                   class="text-xs text-violet-500 font-semibold hover:text-violet-700 transition-colors">
                   查看全部 →
+                </button>
+              </div>
+              <!-- 类型筛选 -->
+              <div class="flex items-center gap-1.5 mb-3">
+                <button v-for="f in ['基础课','系列课']" :key="f"
+                  @click="homeEnrolledFilter = f"
+                  class="px-2.5 py-1 text-xs font-bold rounded-full transition-all"
+                  :class="homeEnrolledFilter === f
+                    ? 'bg-violet-600 text-white shadow-sm shadow-violet-200'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'">
+                  {{ f }}
                 </button>
               </div>
 
@@ -513,9 +524,9 @@
                 </button>
               </div>
 
-              <!-- 课程列表（基础课 + 进行中的系列子节点，最多 4 条） -->
+              <!-- 课程列表 -->
               <div v-else class="space-y-1">
-                <div v-for="c in homeEnrolledCourses.slice(0, 3)" :key="c.id"
+                <div v-for="c in filteredHomeEnrolled.slice(0, 3)" :key="c.id"
                   class="flex items-center gap-3 px-3 py-3 rounded-2xl transition-all group cursor-pointer hover:bg-slate-50"
                   @click="goToProfileBasic()">
                   <!-- 左侧科目图标 -->
@@ -1610,11 +1621,11 @@
 
                   <Transition name="fade" mode="out-in">
 
-                    <!-- ① 吉祥物态（showAiReport = false） -->
-                    <div v-if="!showAiReport" key="mascot"
-                      @click="showAiReport = true"
+                    <!-- ① 吉祥物态 -->
+                    <div v-if="!isAnalyzing && !showAiReport" key="mascot"
+                      @click="startAnalysis"
                       class="w-full flex-1 flex flex-col items-center cursor-pointer group select-none">
-                      <!-- 气泡提示（顶部，与月份标签行对齐） -->
+                      <!-- 气泡提示（顶部） -->
                       <div class="relative bg-violet-600 text-white text-[10px] font-bold
                                   px-3 py-2 rounded-2xl text-center leading-snug shadow-md
                                   shadow-violet-200 w-full">
@@ -1622,16 +1633,14 @@
                         <div class="absolute -bottom-2 left-1/2 -translate-x-1/2
                                     border-[6px] border-transparent border-t-violet-600"></div>
                       </div>
-                      <!-- 机器人图片（中部，与热力图格子区对齐） -->
+                      <!-- 机器人图片（中部） -->
                       <div class="flex-1 w-full flex items-center justify-center pt-1 pb-1">
                         <img src="C:/Users/86175/Downloads/生成紫色机器人图片-removebg-preview.png" alt="AI 机器人"
-                          class="w-32 h-32 object-contain rounded-2xl
-                                 filter drop-shadow(0 10px 8px rgba(139, 92, 246, 0.15))
+                          class="w-32 h-32 object-contain
                                  transition-transform duration-300
                                  group-hover:scale-105 group-hover:-translate-y-1"
                           @error="$event.target.style.display='none'; $event.target.nextElementSibling.style.display='flex'"
                         />
-                        <!-- fallback emoji -->
                         <div class="w-32 h-32 rounded-2xl bg-gradient-to-br from-violet-100 to-purple-200
                                     items-center justify-center text-5xl hidden
                                     transition-transform duration-300
@@ -1642,7 +1651,48 @@
                       <p class="text-[10px] text-violet-400 font-semibold">点击生成报告</p>
                     </div>
 
-                    <!-- ② 报告态（showAiReport = true） -->
+                    <!-- ② 加载态（isAnalyzing = true） -->
+                    <div v-else-if="isAnalyzing" key="analyzing"
+                      class="w-full flex-1 bg-purple-50 rounded-xl p-3.5 flex flex-col gap-2.5">
+                      <!-- 骨架屏头部 -->
+                      <div class="flex items-center gap-2 animate-pulse">
+                        <div class="w-5 h-5 rounded-full bg-violet-200 flex-shrink-0"></div>
+                        <div class="h-2.5 bg-violet-200 rounded-full flex-1"></div>
+                      </div>
+                      <!-- 机器人呼吸灯 -->
+                      <div class="flex-1 flex flex-col items-center justify-center gap-3">
+                        <div class="relative">
+                          <!-- 呼吸光晕 -->
+                          <div class="absolute inset-0 rounded-full bg-violet-400/30 animate-ping"
+                               style="animation-duration: 1.2s;"></div>
+                          <div class="absolute -inset-2 rounded-full bg-violet-300/15 animate-pulse"
+                               style="animation-duration: 1.8s;"></div>
+                          <img src="C:/Users/86175/Downloads/生成紫色机器人图片-removebg-preview.png" alt="AI 机器人"
+                            class="w-16 h-16 object-contain relative z-10"
+                            @error="$event.target.style.display='none'; $event.target.nextElementSibling.style.display='flex'"
+                          />
+                          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-100 to-purple-200
+                                      items-center justify-center text-3xl hidden relative z-10">
+                            🤖
+                          </div>
+                        </div>
+                        <!-- 动态分析文字 -->
+                        <Transition name="fade" mode="out-in">
+                          <p :key="analyzeStep"
+                             class="text-[10px] text-violet-600 font-semibold text-center leading-relaxed px-1">
+                            {{ analyzeTexts[analyzeStep] }}
+                          </p>
+                        </Transition>
+                      </div>
+                      <!-- 骨架屏底部 -->
+                      <div class="space-y-1.5 animate-pulse">
+                        <div class="h-2 bg-violet-100 rounded-full w-full"></div>
+                        <div class="h-1.5 bg-purple-200 rounded-full w-4/5"></div>
+                        <div class="h-1.5 bg-violet-100 rounded-full w-full mt-2"></div>
+                      </div>
+                    </div>
+
+                    <!-- ③ 报告态（showAiReport = true） -->
                     <div v-else key="report"
                       class="w-full flex-1 bg-purple-50 rounded-xl p-3.5 flex flex-col gap-3">
                       <!-- 标题行 + 重置按钮 -->
@@ -1726,6 +1776,26 @@
                 </span>
               </button>
 
+              <!-- 右侧工具栏：课程 tab 时显示类型筛选 -->
+              <Transition name="slide-up">
+                <div v-if="profileTab === 'courses'" class="ml-auto flex items-center gap-1 flex-shrink-0">
+                  <button v-for="f in ['全部','基础课','系列课']" :key="f"
+                    @click="profileCourseFilter = f"
+                    class="px-2.5 py-1 text-xs font-bold rounded-full transition-all"
+                    :class="profileCourseFilter === f
+                      ? 'bg-violet-600 text-white shadow-sm shadow-violet-200'
+                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'">
+                    {{ f }}
+                    <span v-if="f==='基础课'" class="ml-0.5 opacity-60">
+                      ({{ myEnrolledCourses.filter(c=>c.type==='basic').length }})
+                    </span>
+                    <span v-if="f==='系列课'" class="ml-0.5 opacity-60">
+                      ({{ myEnrolledCourses.filter(c=>c.type==='series').length }})
+                    </span>
+                  </button>
+                </div>
+              </Transition>
+
               <!-- 右侧工具栏：笔记 tab 时显示搜索+标签 -->
               <Transition name="slide-up">
                 <div v-if="profileTab === 'notes'" class="ml-auto flex items-center gap-1.5 flex-shrink-0">
@@ -1777,7 +1847,11 @@
                   </button>
                 </div>
                 <div v-else class="space-y-1">
-                  <div v-for="c in myEnrolledCourses" :key="c.id"
+                  <div v-if="filteredProfileCourses.length === 0" class="text-center py-8">
+                    <p class="text-3xl mb-2">🔍</p>
+                    <p class="text-sm font-bold text-slate-500">该类型暂无课程</p>
+                  </div>
+                  <div v-for="c in filteredProfileCourses" :key="c.id"
                     class="flex items-center gap-4 px-3 py-3.5 rounded-2xl transition-all group cursor-pointer hover:bg-slate-50">
                     <div class="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl"
                       :class="c.color==='purple' ? 'bg-violet-50'
@@ -2664,7 +2738,7 @@ const myEnrolledCourses = computed(() => {
   const series = courseSeries
     .filter(s => myEnrolledSeriesIds.value.includes(s.id))
     .map(s => ({ ...s, type: 'series' }))
-  return [...basics, ...series]
+  return [...series, ...basics]
 })
 
 // 当前闯关图显示的套系
@@ -2760,7 +2834,31 @@ const heatmapFilterDate = ref(null)  // null = 全部，string = 仅当日
 
 const showHeatmapToast = ref(false)
 const showAiReport     = ref(false)
+const isAnalyzing      = ref(false)
+const analyzeStep      = ref(0)
 const heatmapToastMsg  = ref('')
+
+const analyzeTexts = [
+  '🔍 正在扫描 20 周学习数据...',
+  '🧠 正在分析错题分布规律...',
+  '📊 正在计算知识点掌握度...',
+  '✨ 正在生成个性化学习建议...',
+]
+let _analyzeTimer = null
+
+function startAnalysis() {
+  if (isAnalyzing.value || showAiReport.value) return
+  isAnalyzing.value = true
+  analyzeStep.value = 0
+  _analyzeTimer = setInterval(() => {
+    analyzeStep.value = (analyzeStep.value + 1) % analyzeTexts.length
+  }, 500)
+  setTimeout(() => {
+    clearInterval(_analyzeTimer)
+    isAnalyzing.value = false
+    showAiReport.value = true
+  }, 2000)
+}
 
 function clickCell(cell) {
   if (cell.status === 'mistake') {
@@ -2807,13 +2905,31 @@ const homeEnrolledCourses = computed(() => {
       }
     })
     .filter(Boolean)
-  return [...basics, ...seriesNodes]
+  return [...seriesNodes, ...basics]
 })
 
 // 个人中心按 tab 过滤
 const profileEnrolledList = computed(() =>
   myEnrolledCourses.value.filter(c => c.type === profileCourseTab.value)
 )
+
+// ── 课程类型筛选（首页 + 个人中心共用逻辑）──
+const homeEnrolledFilter    = ref('基础课')
+const profileCourseFilter   = ref('全部')
+
+const filteredHomeEnrolled = computed(() => {
+  const list = homeEnrolledCourses.value
+  if (homeEnrolledFilter.value === '基础课') return list.filter(c => c.type === 'basic')
+  if (homeEnrolledFilter.value === '系列课') return list.filter(c => c.type === 'series-node')
+  return list
+})
+
+const filteredProfileCourses = computed(() => {
+  const list = myEnrolledCourses.value
+  if (profileCourseFilter.value === '基础课') return list.filter(c => c.type === 'basic')
+  if (profileCourseFilter.value === '系列课') return list.filter(c => c.type === 'series')
+  return list
+})
 
 // 首页"查看全部 →" 跳转个人中心并定位到基础课 tab
 function goToProfileBasic() {
