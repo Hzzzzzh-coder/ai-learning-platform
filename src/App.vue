@@ -1605,13 +1605,13 @@
                   </div>
                 </div>
 
-                <!-- 右侧：AI 学情洞察面板 -->
-                <!-- ── 右侧：AI 学情洞察（固定宽度，切换不抖动） ── -->
-                <div class="w-44 flex-shrink-0 flex flex-col">
+                <!-- 右侧：AI 学情洞察面板（固定宽高，切换不抖动） -->
+                <div class="w-44 flex-shrink-0 flex flex-col min-h-[200px]">
 
-                  <!-- ① 吉祥物态（showAiReport = false） -->
-                  <Transition name="modal">
-                    <div v-if="!showAiReport"
+                  <Transition name="fade" mode="out-in">
+
+                    <!-- ① 吉祥物态（showAiReport = false） -->
+                    <div v-if="!showAiReport" key="mascot"
                       @click="showAiReport = true"
                       class="w-full flex-1 flex flex-col items-center cursor-pointer group select-none">
                       <!-- 气泡提示（顶部，与月份标签行对齐） -->
@@ -1619,7 +1619,6 @@
                                   px-3 py-2 rounded-2xl text-center leading-snug shadow-md
                                   shadow-violet-200 w-full">
                         点我可以进行智能 AI 学情洞察哦~
-                        <!-- 小尾巴 -->
                         <div class="absolute -bottom-2 left-1/2 -translate-x-1/2
                                     border-[6px] border-transparent border-t-violet-600"></div>
                       </div>
@@ -1632,23 +1631,19 @@
                                  group-hover:scale-105 group-hover:-translate-y-1"
                           @error="$event.target.style.display='none'; $event.target.nextElementSibling.style.display='flex'"
                         />
-                        <!-- fallback emoji（图片加载失败时显示） -->
+                        <!-- fallback emoji -->
                         <div class="w-32 h-32 rounded-2xl bg-gradient-to-br from-violet-100 to-purple-200
                                     items-center justify-center text-5xl hidden
-                                    shadow-sm shadow-violet-100
                                     transition-transform duration-300
                                     group-hover:scale-105 group-hover:-translate-y-1">
                           🤖
                         </div>
                       </div>
-                      <!-- 提示文字（底部） -->
                       <p class="text-[10px] text-violet-400 font-semibold">点击生成报告</p>
                     </div>
-                  </Transition>
 
-                  <!-- ② 报告态（showAiReport = true） -->
-                  <Transition name="modal">
-                    <div v-if="showAiReport"
+                    <!-- ② 报告态（showAiReport = true） -->
+                    <div v-else key="report"
                       class="w-full flex-1 bg-purple-50 rounded-xl p-3.5 flex flex-col gap-3">
                       <!-- 标题行 + 重置按钮 -->
                       <div class="flex items-center justify-between">
@@ -1656,7 +1651,6 @@
                           <span class="text-sm leading-none">🤖</span>
                           <p class="text-xs font-black text-violet-700">AI 学情洞察</p>
                         </div>
-                        <!-- 重置回吉祥物态 -->
                         <button @click="showAiReport = false"
                           class="w-5 h-5 rounded-full bg-violet-100 hover:bg-violet-200
                                  flex items-center justify-center transition-colors flex-shrink-0"
@@ -1683,6 +1677,7 @@
                         <p class="text-[10px] text-violet-400 mt-1.5">优于同年级 <b class="text-violet-600">73%</b> 的同学</p>
                       </div>
                     </div>
+
                   </Transition>
 
                 </div>
@@ -3318,6 +3313,9 @@ body { margin: 0; }
 /* ── Transitions ── */
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s ease; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 
 .flash-enter-active { transition: opacity 0.05s ease; }
 .flash-leave-active { transition: opacity 0.3s ease; }
