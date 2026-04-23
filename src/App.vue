@@ -3588,10 +3588,14 @@
     </div>
   </Transition>
 
+
+  <!-- 智小星 AI 助手 -->
+  <ZhiXiaoXing @navigate="handleZxxNavigate" />
 </template>
 
 <script setup>
 import { ref, computed, reactive } from 'vue'
+import ZhiXiaoXing from './components/ZhiXiaoXing.vue'
 
 // ── State ──
 const currentView = ref('home')
@@ -4585,6 +4589,11 @@ function closeAIModal() { showAIModal.value = false }
 function switchView(view) {
   currentView.value = view
   resetQuiz()
+}
+
+function handleZxxNavigate({ view, analyticsView: av }) {
+  switchView(view)
+  if (av) analyticsView.value = av
 }
 
 function openVideoPlayer(course) {
