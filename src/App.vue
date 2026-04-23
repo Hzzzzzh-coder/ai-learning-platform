@@ -345,7 +345,7 @@
       </aside>
 
       <!-- ── Main Content ── -->
-      <main :class="currentView === 'schedule'
+      <main :class="currentView === 'schedule' || currentView === 'community'
         ? 'flex-1 overflow-hidden flex flex-col'
         : 'flex-1 overflow-y-auto'"
         style="scrollbar-width: none; -ms-overflow-style: none;">
@@ -3030,10 +3030,365 @@
           </template>
         </div>
 
+        <!-- ══ VIEW: 班级社群 ══ -->
+        <div v-else-if="currentView === 'community'"
+          class="flex flex-1 overflow-hidden min-h-0">
+
+          <!-- ── 左侧：成员列表 (25%) ── -->
+          <div class="w-64 flex-shrink-0 border-r border-slate-100 flex flex-col bg-white"
+            style="min-height: 0;">
+            <!-- 班级信息头 -->
+            <div class="px-5 py-4 border-b border-slate-100">
+              <div class="flex items-center gap-2.5 mb-1">
+                <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600
+                            flex items-center justify-center text-white font-black text-sm shadow-md shadow-violet-200 flex-shrink-0">
+                  班
+                </div>
+                <div>
+                  <p class="text-sm font-black text-slate-800 leading-tight">初三(6)班</p>
+                  <p class="text-[10px] text-slate-400">{{ communityMembers.length }} 位成员</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 成员列表 -->
+            <div class="flex-1 overflow-y-auto px-3 py-3 space-y-1" style="scrollbar-width: none;">
+              <!-- 教师区 -->
+              <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider px-2 mb-2">班级老师</p>
+              <!-- 群聊入口 -->
+              <div @click="closeDM"
+                class="flex items-center gap-2.5 px-2.5 py-2 rounded-2xl cursor-pointer transition-all mb-3"
+                :class="!activeDMUser ? 'bg-violet-100 border border-violet-200' : 'hover:bg-slate-50'">
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-black flex-shrink-0
+                            bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm">
+                  班
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs font-black" :class="!activeDMUser ? 'text-violet-800' : 'text-slate-700'">班级群</p>
+                  <p class="text-[10px] text-slate-400">{{ communityMembers.filter(m=>m.online).length }} 人在线</p>
+                </div>
+                <span v-if="!activeDMUser" class="w-1.5 h-1.5 rounded-full bg-violet-500 flex-shrink-0"></span>
+              </div>
+
+              <div class="border-t border-slate-100 mx-2 mb-3"></div>
+
+              <!-- 教师区 -->
+              <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider px-2 mb-2">班级老师</p>
+              <div v-for="m in communityMembers.filter(m => m.role === 'teacher')" :key="m.id"
+                @click="openDM(m)"
+                class="flex items-center gap-2.5 px-2.5 py-2 rounded-2xl cursor-pointer transition-all"
+                :class="activeDMUser?.id === m.id
+                  ? 'bg-violet-100 border border-violet-200'
+                  : 'bg-violet-50 border border-violet-100 hover:bg-violet-100'">
+                <div class="relative flex-shrink-0">
+                  <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white text-sm font-black
+                              bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm shadow-violet-200">
+                    {{ m.avatar }}
+                  </div>
+                  <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white bg-emerald-400"></span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-1">
+                    <p class="text-xs font-black text-violet-800 truncate">{{ m.name }}</p>
+                    <span class="flex-shrink-0 text-[9px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full font-black leading-none">
+                      班主任
+                    </span>
+                  </div>
+                  <p class="text-[10px] text-violet-400">私信老师</p>
+                </div>
+                <span v-if="activeDMUser?.id === m.id" class="w-1.5 h-1.5 rounded-full bg-violet-500 flex-shrink-0"></span>
+              </div>
+
+              <!-- 学生区 -->
+              <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider px-2 mt-4 mb-2">同班同学</p>
+              <div v-for="m in communityMembers.filter(m => m.role !== 'teacher')" :key="m.id"
+                @click="openDM(m)"
+                class="flex items-center gap-2.5 px-2.5 py-2 rounded-2xl transition-all"
+                :class="m.role === 'me'
+                  ? 'bg-slate-50 border border-slate-200 cursor-default'
+                  : activeDMUser?.id === m.id
+                    ? 'bg-violet-100 border border-violet-200 cursor-pointer'
+                    : 'hover:bg-slate-50 cursor-pointer'">
+                <div class="relative flex-shrink-0">
+                  <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-black"
+                    :class="m.role === 'me'
+                      ? 'bg-gradient-to-br from-violet-400 to-purple-500'
+                      : 'bg-gradient-to-br from-slate-300 to-slate-400'">
+                    {{ m.avatar }}
+                  </div>
+                  <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white"
+                    :class="m.online ? 'bg-emerald-400' : 'bg-slate-300'"></span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs font-semibold truncate"
+                    :class="m.role === 'me' ? 'text-violet-700 font-black'
+                           : activeDMUser?.id === m.id ? 'text-violet-800 font-black'
+                           : 'text-slate-700'">
+                    {{ m.name }}{{ m.role === 'me' ? ' (我)' : '' }}
+                  </p>
+                  <p class="text-[10px]" :class="m.online ? 'text-emerald-500' : 'text-slate-300'">
+                    {{ m.role === 'me' ? '我' : m.online ? '在线' : '离线' }}
+                  </p>
+                </div>
+                <span v-if="activeDMUser?.id === m.id" class="w-1.5 h-1.5 rounded-full bg-violet-500 flex-shrink-0"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── 右侧：聊天主区域 (75%) ── -->
+          <div class="flex-1 flex flex-col min-w-0 bg-slate-50">
+
+            <!-- 聊天顶部栏 -->
+            <div class="flex items-center justify-between px-6 py-3.5 bg-white border-b border-slate-100 flex-shrink-0">
+              <div class="flex items-center gap-3">
+                <!-- 群聊头像 -->
+                <div v-if="!activeDMUser"
+                  class="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600
+                          flex items-center justify-center text-white font-black text-xs shadow-sm flex-shrink-0">班</div>
+                <!-- 1v1头像 -->
+                <div v-else
+                  class="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-black shadow-sm flex-shrink-0"
+                  :class="activeDMUser.role === 'teacher'
+                    ? 'bg-gradient-to-br from-violet-500 to-purple-600'
+                    : 'bg-gradient-to-br from-slate-300 to-slate-400'">
+                  {{ activeDMUser.avatar }}
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <p class="text-sm font-black text-slate-800">
+                      {{ activeDMUser ? activeDMUser.name : '初三(6)班 · 班级群' }}
+                    </p>
+                    <span v-if="activeDMUser?.role === 'teacher'"
+                      class="text-[9px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full font-black">班主任</span>
+                    <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-semibold">
+                      {{ activeDMUser ? '私信' : '群聊' }}
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-1.5 mt-0.5">
+                    <span class="w-1.5 h-1.5 rounded-full animate-pulse"
+                      :class="activeDMUser ? (activeDMUser.online ? 'bg-emerald-400' : 'bg-slate-300') : 'bg-emerald-400'"></span>
+                    <p class="text-[10px] font-semibold"
+                      :class="activeDMUser ? (activeDMUser.online ? 'text-emerald-500' : 'text-slate-400') : 'text-emerald-500'">
+                      {{ activeDMUser ? (activeDMUser.online ? '在线' : '离线') : communityMembers.filter(m => m.online).length + ' 人在线' }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <!-- 1v1 时：返回群聊 -->
+                <button v-if="activeDMUser" @click="closeDM"
+                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-600 transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                  </svg>
+                  返回群聊
+                </button>
+                <button class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+                  <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- 消息流 -->
+            <div id="comm-messages" class="flex-1 overflow-y-auto px-6 py-5 space-y-4"
+              style="scrollbar-width: thin; scrollbar-color: #e2e8f0 transparent;">
+
+              <!-- 1v1 空状态 -->
+              <div v-if="activeDMUser && (!dmMessagesMap[activeDMUser.id] || dmMessagesMap[activeDMUser.id].length === 0)"
+                class="flex flex-col items-center justify-center h-full gap-4 py-20">
+                <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-md"
+                  :class="activeDMUser.role === 'teacher'
+                    ? 'bg-gradient-to-br from-violet-500 to-purple-600 shadow-violet-200'
+                    : 'bg-gradient-to-br from-slate-300 to-slate-400'">
+                  {{ activeDMUser.avatar }}
+                </div>
+                <div class="text-center">
+                  <p class="text-sm font-black text-slate-700">与 {{ activeDMUser.name }} 的私信</p>
+                  <p class="text-xs text-slate-400 mt-1">发送第一条消息，开始私聊吧 👋</p>
+                </div>
+              </div>
+
+              <!-- 群聊 / 1v1 消息列表 -->
+              <TransitionGroup name="comm-msg" tag="div" class="space-y-4">
+                <div v-for="msg in activeDMUser ? (dmMessagesMap[activeDMUser.id] || []) : communityMessages" :key="msg.id">
+                  <!-- 我的消息：右对齐 -->
+                  <div v-if="msg.role === 'me'" class="flex flex-col items-end gap-1">
+                    <p class="text-[10px] text-slate-400 pr-1">{{ msg.name }} · {{ msg.time }}</p>
+                    <div class="max-w-xs">
+                      <div class="px-4 py-2.5 rounded-3xl rounded-tr-lg text-sm text-white leading-relaxed"
+                        style="background: linear-gradient(135deg, #7c3aed, #6d28d9);">
+                        {{ msg.text }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 老师消息：左对齐 + 特殊样式 -->
+                  <div v-else-if="msg.role === 'teacher'" class="flex items-start gap-3">
+                    <div class="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-sm font-black shadow-sm shadow-violet-200"
+                      style="background: linear-gradient(135deg, #7c3aed, #a855f7);">
+                      {{ msg.avatar }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 mb-1">
+                        <p class="text-xs font-black text-violet-700">{{ msg.name }}</p>
+                        <span class="text-[9px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full font-black">班主任</span>
+                        <p class="text-[10px] text-slate-400">{{ msg.time }}</p>
+                      </div>
+                      <div class="max-w-md">
+                        <div class="px-4 py-3 rounded-3xl rounded-tl-lg text-sm text-slate-700 leading-relaxed"
+                          style="background: linear-gradient(135deg, #faf5ff, #f3e8ff); border: 1px solid rgba(139,92,246,0.15);">
+                          {{ msg.text }}
+                        </div>
+                      </div>
+                      <!-- 快捷回应按钮 -->
+                      <div class="flex items-center gap-1.5 mt-2 flex-wrap">
+                        <button v-for="btn in [
+                            { label: '✅ 已收到', key: 'received' },
+                            { label: '❓ 没听懂', key: 'confused' },
+                            { label: '👏 讲得好', key: 'great' },
+                          ]" :key="btn.key"
+                          @click="commQuickReply(msg.id, btn.label)"
+                          class="px-3 py-1 text-[11px] font-bold rounded-full border transition-all active:scale-95"
+                          :class="msg.reactions.includes(btn.key)
+                            ? 'bg-violet-100 border-violet-200 text-violet-700'
+                            : 'bg-white border-slate-200 text-slate-500 hover:border-violet-200 hover:text-violet-600'">
+                          {{ btn.label }}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 其他同学消息：左对齐 -->
+                  <div v-else class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-xs font-black"
+                      style="background: linear-gradient(135deg, #94a3b8, #64748b);">
+                      {{ msg.avatar }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 mb-1">
+                        <p class="text-xs font-bold text-slate-600">{{ msg.name }}</p>
+                        <p class="text-[10px] text-slate-400">{{ msg.time }}</p>
+                      </div>
+                      <div class="max-w-sm">
+                        <div class="px-4 py-2.5 rounded-3xl rounded-tl-lg text-sm text-slate-700 leading-relaxed bg-white"
+                          style="border: 1px solid #f1f5f9; box-shadow: 0 1px 3px rgba(0,0,0,.05);">
+                          {{ msg.text }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </TransitionGroup>
+            </div>
+
+            <!-- 输入栏 -->
+            <div class="flex-shrink-0 px-6 py-4 bg-white border-t border-slate-100">
+              <!-- 快捷短语 -->
+              <div class="flex items-center gap-2 mb-3 flex-wrap">
+                <span class="text-[10px] text-slate-400 font-semibold">快速：</span>
+                <button v-for="phrase in (activeDMUser?.role === 'teacher'
+                    ? ['老师好 👋', '我有问题', '谢谢老师', '已明白 ✅']
+                    : activeDMUser
+                      ? ['你好 👋', '一起学习吧', '你做完了吗？', '有没有思路？']
+                      : ['我已提交 ✅', '学会了 👍', '我还在做…', '老师有个问题'])"
+                  :key="phrase"
+                  @click="communityInput = phrase"
+                  class="px-2.5 py-1 text-[11px] font-bold bg-slate-100 hover:bg-violet-100 hover:text-violet-700
+                         text-slate-600 rounded-full transition-all">
+                  {{ phrase }}
+                </button>
+              </div>
+              <div class="flex items-end gap-3">
+                <!-- 附件按钮 -->
+                <button class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center flex-shrink-0 transition-colors">
+                  <svg class="w-4.5 h-4.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                  </svg>
+                </button>
+                <!-- 输入框 -->
+                <div class="flex-1 flex items-end gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50
+                            focus-within:border-violet-300 focus-within:bg-white transition-all">
+                  <textarea v-model="communityInput"
+                    :placeholder="activeDMUser ? `私信 ${activeDMUser.name}…` : '发消息给班级…'"
+                    rows="1"
+                    @keydown.enter.exact.prevent="commSend"
+                    class="flex-1 bg-transparent text-sm text-slate-800 resize-none outline-none
+                           placeholder:text-slate-400 leading-relaxed"
+                    style="max-height: 80px; overflow-y: auto; scrollbar-width: none;"></textarea>
+                  <span class="text-[10px] text-slate-300 flex-shrink-0 self-end pb-0.5">Enter 发送</span>
+                </div>
+                <!-- 发送按钮 -->
+                <button @click="commSend"
+                  class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white
+                         transition-all active:scale-90"
+                  :class="communityInput.trim()
+                    ? 'bg-gradient-to-br from-violet-500 to-purple-600 shadow-md shadow-violet-200 hover:shadow-lg'
+                    : 'bg-slate-200 cursor-not-allowed'">
+                  <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
       </main>
 
       <!-- ── Right Sidebar ── -->
       <aside class="w-64 flex-shrink-0 bg-white border-l border-slate-100 flex flex-col overflow-y-auto p-4 gap-5" style="scrollbar-width: none; -ms-overflow-style: none;">
+
+        <!-- 班级社群快捷入口 -->
+        <div @click="switchView('community')"
+          class="rounded-2xl overflow-hidden cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md"
+          style="background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%); border: 1px solid rgba(139,92,246,0.18);">
+          <div class="px-4 py-3.5">
+            <div class="flex items-center gap-2.5 mb-2.5">
+              <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600
+                          flex items-center justify-center text-white text-xs font-black shadow-sm shadow-violet-200 flex-shrink-0">
+                班
+              </div>
+              <div>
+                <p class="text-xs font-black text-violet-800">班级社群</p>
+                <p class="text-[10px] text-violet-500">初三(6)班</p>
+              </div>
+            </div>
+            <!-- 在线成员头像堆叠 -->
+            <div class="flex items-center gap-2">
+              <div class="flex items-center">
+                <div v-for="(m, i) in communityMembers.filter(m => m.online).slice(0, 4)" :key="m.id"
+                  class="w-6 h-6 rounded-full border-2 border-white/80 flex items-center justify-center text-white text-[9px] font-black"
+                  :class="m.role === 'teacher'
+                    ? 'bg-gradient-to-br from-violet-500 to-purple-600'
+                    : 'bg-gradient-to-br from-slate-300 to-slate-400'"
+                  :style="{ marginLeft: i === 0 ? '0' : '-6px', zIndex: 10 - i }">
+                  {{ m.avatar }}
+                </div>
+              </div>
+              <div class="flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <p class="text-[10px] text-violet-600 font-semibold">
+                  {{ communityMembers.filter(m => m.online).length }} 人在线
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center justify-between px-4 py-2"
+            style="background: rgba(124,58,237,0.12);">
+            <p class="text-[10px] text-violet-700 font-black">进入班级群</p>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[9px] bg-violet-500 text-white px-1.5 py-0.5 rounded-full font-black leading-none">
+                {{ communityMessages.length }}条
+              </span>
+              <svg class="w-3 h-3 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+              </svg>
+            </div>
+          </div>
+        </div>
 
         <!-- Daily Tasks -->
         <div>
@@ -3594,7 +3949,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, nextTick } from 'vue'
 import ZhiXiaoXing from './components/ZhiXiaoXing.vue'
 
 // ── State ──
@@ -3842,6 +4197,10 @@ const navItems = [
   {
     view: 'homework', label: '今日作业',
     icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>'
+  },
+   {
+    view: 'community', label: '班级社群',
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>'
   },
   {
     view: 'profile', label: '个人中心',
@@ -4986,6 +5345,110 @@ const classTeacher = {
   title: '班主任 · 数学',
   message: '同学们，今天的函数练习难度适中，记得重点复习一下二次项系数的意义哦！注意审题，加油！',
 }
+
+// ── 班级社群 ──
+const activeDMUser = ref(null)   // null = 群聊, member obj = 1v1
+const dmMessagesMap = ref({})    // { [memberId]: Message[] }
+
+function openDM(member) {
+  if (member.role === 'me') return
+  activeDMUser.value = member
+  if (!dmMessagesMap.value[member.id]) {
+    dmMessagesMap.value[member.id] = []
+  }
+}
+function closeDM() { activeDMUser.value = null }
+
+const communityInput = ref('')
+const communityMembers = [
+  { id: 'm0', name: '李明华', role: 'teacher', avatar: '李', online: true, title: '班主任 · 数学' },
+  { id: 'm1', name: '林小萱', role: 'me',      avatar: '林', online: true,  title: '学生' },
+  { id: 'm2', name: '张小强', role: 'student',  avatar: '张', online: true,  title: '学生' },
+  { id: 'm3', name: '王芳',   role: 'student',  avatar: '王', online: false, title: '学生' },
+  { id: 'm4', name: '赵磊',   role: 'student',  avatar: '赵', online: true,  title: '学生' },
+  { id: 'm5', name: '陈子涵', role: 'student',  avatar: '陈', online: false, title: '学生' },
+  { id: 'm6', name: '刘宇航', role: 'student',  avatar: '刘', online: true,  title: '学生' },
+]
+const communityMessages = ref([
+  {
+    id: 1, senderId: 'm0', name: '李明华', avatar: '李', role: 'teacher',
+    text: '同学们注意！今天的二次函数作业截止时间是晚上九点，还没提交的同学抓紧时间哦 📌',
+    time: '18:02', reactions: [],
+  },
+  {
+    id: 2, senderId: 'm2', name: '张小强', avatar: '张', role: 'student',
+    text: '老师，顶点式和标准式互化那道题我有点不明白，能讲一下吗？',
+    time: '18:05', reactions: [],
+  },
+  {
+    id: 3, senderId: 'm0', name: '李明华', avatar: '李', role: 'teacher',
+    text: '好的，顶点式 y = a(x-h)² + k，展开后对应标准式系数：b = -2ah，c = ah² + k。掌握这个对称就很容易转化了 🎯',
+    time: '18:07', reactions: [],
+  },
+  {
+    id: 4, senderId: 'm3', name: '王芳', avatar: '王', role: 'student',
+    text: '谢谢老师！我刚才做出来了，感觉这个思路一通，其他题也顺了',
+    time: '18:10', reactions: [],
+  },
+  {
+    id: 5, senderId: 'm1', name: '林小萱', avatar: '林', role: 'me',
+    text: '对对！对称轴公式 x = -b/2a 是关键，记住这个就不会乱了',
+    time: '18:12', reactions: [],
+  },
+  {
+    id: 6, senderId: 'm0', name: '李明华', avatar: '李', role: 'teacher',
+    text: '林小萱说得很对！大家记住一个核心：对称轴是顶点横坐标，判别式决定有没有实数根。这两个是二次函数的灵魂 ✨',
+    time: '18:15', reactions: [],
+  },
+  {
+    id: 7, senderId: 'm4', name: '赵磊', avatar: '赵', role: 'student',
+    text: '老师！我把今天的练习题整理了一份错题总结，发到群里分享给大家！',
+    time: '18:18', reactions: [],
+  },
+])
+let _commMsgId = 100
+
+function commSend() {
+  const txt = communityInput.value.trim()
+  if (!txt) return
+  const msg = {
+    id: _commMsgId++,
+    senderId: 'm1', name: '林小萱', avatar: '林', role: 'me',
+    text: txt,
+    time: (() => { const d = new Date(); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}` })(),
+    reactions: [],
+  }
+  if (activeDMUser.value) {
+    dmMessagesMap.value[activeDMUser.value.id].push(msg)
+  } else {
+    communityMessages.value.push(msg)
+  }
+  communityInput.value = ''
+  nextTick(() => {
+    const el = document.getElementById('comm-messages')
+    if (el) el.scrollTop = el.scrollHeight
+  })
+}
+
+function commReact(msg, reaction) {
+  const idx = msg.reactions.indexOf(reaction)
+  if (idx === -1) msg.reactions.push(reaction)
+  else msg.reactions.splice(idx, 1)
+}
+
+function commQuickReply(msgId, label) {
+  communityMessages.value.push({
+    id: _commMsgId++,
+    senderId: 'm1', name: '林小萱', avatar: '林', role: 'me',
+    text: label,
+    time: (() => { const d = new Date(); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}` })(),
+    reactions: [],
+  })
+  nextTick(() => {
+    const el = document.getElementById('comm-messages')
+    if (el) el.scrollTop = el.scrollHeight
+  })
+}
 </script>
 
 <style>
@@ -5015,6 +5478,12 @@ body { margin: 0; }
 .view-slide-reverse-leave-to   { opacity: 0; transform: translateX(40px); }
 
 .flash-enter-from, .flash-leave-to { opacity: 0; }
+
+/* ── 社群消息进入动画 ── */
+.comm-msg-enter-active { transition: all 0.25s ease; }
+.comm-msg-enter-from { opacity: 0; transform: translateY(10px); }
+.comm-msg-leave-active { transition: all 0.15s ease; }
+.comm-msg-leave-to { opacity: 0; }
 
 /* ── AI 流光按钮 ── */
 .ai-shimmer-btn::before {
