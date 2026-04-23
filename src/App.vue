@@ -258,9 +258,18 @@
           <span v-if="focusMode" class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
         </button>
         <!-- Streak -->
-        <div class="flex items-center gap-1.5 bg-orange-50 border border-orange-100 rounded-xl px-3 py-1.5 cursor-default">
-          <span class="text-base leading-none">🔥</span>
-          <span class="text-sm font-black text-orange-600">{{ user.streak }}</span>
+        <div ref="headerStreakRef" class="relative flex items-center gap-1.5 bg-orange-50 border border-orange-100 rounded-xl px-3 py-1.5 cursor-default">
+          <!-- 撞击光圈 -->
+          <div v-if="streakImpact" class="absolute inset-0 rounded-xl pointer-events-none streak-impact-ring"></div>
+          <span class="text-base leading-none transition-transform duration-300"
+            :class="streakImpact ? 'streak-flame-bounce' : ''">🔥</span>
+          <!-- 数字跳变 -->
+          <span class="text-sm font-black text-orange-600 overflow-hidden" style="height:1.2em; display:inline-flex; align-items:center;">
+            <span :class="streakNumberJump ? 'streak-num-jump' : ''" style="display:inline-block">
+              {{ user.streak }}
+            </span>
+          </span>
+         
         </div>
         <!-- XP Bar -->
         <div class="flex items-center gap-2">
@@ -1609,7 +1618,7 @@
 
                   <!-- 自建课表模式：提供"班级导入"入口 -->
                   <button v-if="timetableState === 'manual'"
-                    @click="className ? showClassImportModal = true : showClassModal = true"
+                    @click="triggerClassImport"
                     class="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 text-slate-600
                            text-sm font-black rounded-2xl hover:bg-slate-50 active:scale-95 transition-all">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3385,34 +3394,81 @@
       <aside class="w-64 flex-shrink-0 bg-white border-l border-slate-100 flex flex-col overflow-y-auto p-4 gap-5" style="scrollbar-width: none; -ms-overflow-style: none;">
 
         <!-- Daily Tasks -->
-        <div>
+        <div ref="dailyTasksRef">
           <div class="flex items-center justify-between mb-3">
             <h2 class="text-sm font-black text-slate-800">每日任务</h2>
-            <span class="text-xs bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-full font-bold">
-              {{ dailyTasks.filter(t => t.done).length }}/{{ dailyTasks.length }}
-            </span>
+            <div class="flex items-center gap-2">
+              <!-- 任务计数胶囊 -->
+              <span class="text-xs bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-full font-bold">
+                {{ dailyTasks.filter(t => t.done).length }}/{{ dailyTasks.length }}
+              </span>
+              <!-- ── 进化火焰图标 ── -->
+              <div ref="flameSlotRef"
+                class="relative flex-shrink-0 w-[22px] h-[28px] transition-transform duration-300"
+                :class="isDailyTasksAllDone ? 'flame-title-full' : ''">
+                <!-- 底层：灰色轮廓 -->
+                <svg class="absolute inset-0 w-full h-full" viewBox="0 0 22 28" fill="none">
+                  <path d="M11 1.5C8 5.5 3 9 3 15C3 20.2 6.5 24 11 24C15.5 24 19 20.2 19 15C19 9 14 5.5 11 1.5Z
+                           M11 9.5C9.5 12.5 8 14.5 8.5 17.5C9 20 10 21.5 11 21.5C12 21.5 13 20 13.5 17.5C14 14.5 12.5 12.5 11 9.5Z"
+                    fill="#e2e8f0"/>
+                </svg>
+                <!-- 上层：彩色填充（从底部向上 clip） -->
+                <div class="absolute inset-0 overflow-hidden"
+                  :style="{
+                    clipPath: `inset(${(1 - flamePercent) * 100}% 0 0 0)`,
+                    transition: 'clip-path 0.75s cubic-bezier(0.34,1.56,0.64,1)'
+                  }">
+                  <svg class="w-full h-full" viewBox="0 0 22 28" fill="none">
+                    <defs>
+                      <linearGradient id="flameTitleGrad" x1="0" y1="1" x2="0" y2="0">
+                        <stop offset="0%" stop-color="#f97316"/>
+                        <stop offset="60%" stop-color="#fb923c"/>
+                        <stop offset="100%" stop-color="#facc15"/>
+                      </linearGradient>
+                    </defs>
+                    <path d="M11 1.5C8 5.5 3 9 3 15C3 20.2 6.5 24 11 24C15.5 24 19 20.2 19 15C19 9 14 5.5 11 1.5Z
+                             M11 9.5C9.5 12.5 8 14.5 8.5 17.5C9 20 10 21.5 11 21.5C12 21.5 13 20 13.5 17.5C14 14.5 12.5 12.5 11 9.5Z"
+                      fill="url(#flameTitleGrad)"/>
+                  </svg>
+                </div>
+                <!-- 满能光晕 -->
+                <div v-if="isDailyTasksAllDone"
+                  class="absolute inset-[-4px] rounded-full pointer-events-none"
+                  style="background:radial-gradient(circle,rgba(251,146,60,.35),transparent 70%);
+                         animation:flame-glow-pulse 1.2s ease-in-out infinite"></div>
+              </div>
+            </div>
           </div>
-          <!-- Overall progress -->
-          <div class="h-2 bg-slate-100 rounded-full mb-3 overflow-hidden">
-            <div class="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full transition-all duration-700"
-              :style="{ width: (dailyTasks.filter(t=>t.done).length / dailyTasks.length * 100) + '%' }"></div>
-          </div>
+
+          <!-- 任务列表 -->
           <div class="space-y-2">
             <div v-for="task in dailyTasks" :key="task.id"
               @click="completeTask(task)"
-              class="flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all select-none"
+              class="flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all duration-300 select-none"
               :class="task.done ? 'bg-emerald-50' : 'bg-slate-50 hover:bg-slate-100'">
-              <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
+              <!-- 勾选圈 -->
+              <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300"
                 :class="task.done ? 'bg-emerald-400' : 'border-2 border-slate-300'">
                 <svg v-if="task.done" class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
                 </svg>
               </div>
+              <!-- 标题 + 闪电火花 -->
               <p class="flex-1 text-xs font-semibold truncate"
                 :class="task.done ? 'text-emerald-700 line-through decoration-emerald-400' : 'text-slate-700'">
                 {{ task.title }}
               </p>
-              <span class="text-xs font-black text-amber-500 flex-shrink-0">+{{ task.xp }}</span>
+              <!-- 闪电火花图标 -->
+              <svg class="w-3.5 h-3.5 flex-shrink-0 transition-all duration-300"
+                :class="task.done ? 'text-amber-400 drop-shadow-[0_0_4px_rgba(251,191,36,.8)]' : 'text-slate-300'"
+                viewBox="0 0 24 24" fill="currentColor">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+              </svg>
+              <!-- XP 紫色标签 -->
+              <span class="text-xs font-bold flex-shrink-0"
+                :class="task.done ? 'text-purple-500' : 'text-purple-400'">
+                +{{ task.xp }} XP
+              </span>
             </div>
           </div>
         </div>
@@ -3460,36 +3516,71 @@
         <!-- 今日课程（紧凑版） -->
         <div>
           <div class="flex items-center justify-between mb-2">
-            <h2 class="text-sm font-black text-slate-800"> 今日课程</h2>
+            <h2 class="text-sm font-black text-slate-800">今日课程</h2>
             <button @click="switchView('schedule')"
               class="text-xs font-bold text-violet-500 hover:text-violet-700 transition-colors">
               课表 →
             </button>
           </div>
-          <div class="space-y-1.5">
-            <div v-for="ev in dayEvents(0)" :key="ev.id"
-              class="flex items-center gap-2.5 px-3 py-2 rounded-xl border cursor-pointer hover:shadow-sm transition-all"
-              :style="{
-                borderColor: (EVENT_COLOR_MAP[ev.colorKey]?.hex || '#8b5cf6') + '30',
-                backgroundColor: EVENT_COLOR_MAP[ev.colorKey]?.light || '#ede9fe',
-              }"
-              @click="switchView('schedule')">
-              <div class="w-0.5 self-stretch rounded-full flex-shrink-0"
-                :style="{ backgroundColor: EVENT_COLOR_MAP[ev.colorKey]?.hex }"></div>
-              <div class="min-w-0">
-                <p class="text-xs font-black leading-tight truncate"
-                  :style="{ color: EVENT_COLOR_MAP[ev.colorKey]?.text }">{{ ev.subject }}</p>
-                <p class="text-xs opacity-60 font-mono"
-                  :style="{ color: EVENT_COLOR_MAP[ev.colorKey]?.text }">
-                  {{ String(ev.startHour).padStart(2,'0') }}:{{ String(ev.startMin).padStart(2,'0') }} · {{ ev.teacher }}
+
+          <Transition name="today-course" mode="out-in">
+            <!-- 空状态：未关联课表 -->
+            <div v-if="scheduleMode === 'empty'" key="empty"
+              class="flex flex-col items-center justify-center gap-2.5 py-5 px-3 rounded-2xl"
+              style="background:#f8fafc; border:1.5px dashed #e2e8f0; min-height:120px">
+              <!-- 日历图标 -->
+              <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M9 14h.01M12 14h.01M15 14h.01M9 17h.01M12 17h.01"/>
+              </svg>
+              <div class="text-center">
+                <p class="text-xs font-black text-slate-400">暂未关联课表</p>
+                <p class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">加入班级即可同步今日安排</p>
+              </div>
+              <button @click="switchView('schedule')"
+                class="text-[11px] font-black text-violet-500 hover:text-violet-700
+                       px-3 py-1 rounded-full bg-violet-50 hover:bg-violet-100 transition-all">
+                立即关联 →
+              </button>
+            </div>
+
+            <!-- 数据态：已关联课表 -->
+            <div v-else key="data" style="min-height:120px">
+              <!-- 今日无课 -->
+              <div v-if="dayEvents(0).length === 0"
+                class="flex flex-col items-center justify-center gap-2 h-full py-5 px-3 rounded-2xl"
+                style="background:#f8fafc; border:1.5px dashed #e2e8f0;">
+                <span class="text-2xl">☀️</span>
+                <p class="text-xs font-black text-slate-400">今日暂无课程安排</p>
+                <p class="text-[11px] text-slate-300 text-center leading-relaxed">
+                  好好休息，或点击<br/>课表 → 提前预习明天的内容
                 </p>
               </div>
+              <!-- 有课列表 -->
+              <div v-else class="space-y-1.5">
+                <div v-for="ev in dayEvents(0)" :key="ev.id"
+                  class="flex items-center gap-2.5 px-3 py-2 rounded-xl border cursor-pointer hover:shadow-sm transition-all"
+                  :style="{
+                    borderColor: (EVENT_COLOR_MAP[ev.colorKey]?.hex || '#8b5cf6') + '30',
+                    backgroundColor: EVENT_COLOR_MAP[ev.colorKey]?.light || '#ede9fe',
+                  }"
+                  @click="switchView('schedule')">
+                  <div class="w-0.5 self-stretch rounded-full flex-shrink-0"
+                    :style="{ backgroundColor: EVENT_COLOR_MAP[ev.colorKey]?.hex }"></div>
+                  <div class="min-w-0">
+                    <p class="text-xs font-black leading-tight truncate"
+                      :style="{ color: EVENT_COLOR_MAP[ev.colorKey]?.text }">{{ ev.subject }}</p>
+                    <p class="text-xs opacity-60 font-mono"
+                      :style="{ color: EVENT_COLOR_MAP[ev.colorKey]?.text }">
+                      {{ String(ev.startHour).padStart(2,'0') }}:{{ String(ev.startMin).padStart(2,'0') }} · {{ ev.teacher }}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <button @click="openAddEvent(0, 16, 0)"
-              class="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-slate-200 hover:border-violet-300 text-slate-400 hover:text-violet-500 text-xs font-semibold transition-all">
-              + 添加课外课程
-            </button>
-          </div>
+          </Transition>
         </div>
 
       </aside>
@@ -3620,7 +3711,11 @@
              flex items-center gap-3 bg-slate-900 text-white
              px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold whitespace-nowrap">
       <span class="text-lg">📸</span>
-      AI 已截取当前板书并生成知识摘要，已存入<span class="text-violet-300 font-black">个人中心</span>
+      AI 已截取当前板书并生成知识摘要，已存入<span
+        class="text-violet-300 font-black underline cursor-pointer hover:text-violet-200 transition-colors"
+        @click="focusMode = false; profileTab = 'notes'; switchView('profile'); showNoteToast = false">
+        个人中心 · 我的笔记
+      </span>
     </div>
   </Transition>
 
@@ -3657,6 +3752,43 @@
              flex items-center gap-3 bg-slate-900 text-white
              px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold whitespace-nowrap">
       {{ heatmapToastMsg }}
+    </div>
+  </Transition>
+
+  <!-- ── 每日任务全完成 Toast ── -->
+  <Transition name="daily-done-toast">
+    <div v-if="showDailyDoneToast"
+      class="fixed top-5 left-1/2 -translate-x-1/2 z-[160]
+             flex items-center gap-2.5 px-5 py-3 rounded-2xl
+             text-sm font-black whitespace-nowrap select-none"
+      style="background:rgba(255,255,255,0.82); backdrop-filter:blur(14px) saturate(1.6);
+             border:1.5px solid rgba(139,92,246,.28);
+             box-shadow:0 8px 32px rgba(139,92,246,.18), 0 1px 4px rgba(0,0,0,.06);">
+      <span class="text-base leading-none">🎉</span>
+      <span style="color:#5b21b6">太棒了！今日任务已全部达成，打卡</span>
+      <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-white text-xs font-black"
+        style="background:linear-gradient(135deg,#f97316,#ef4444)">
+        🔥 +1 天
+      </span>
+    </div>
+  </Transition>
+
+  <!-- ── 飞行火焰粒子 ── -->
+  <Transition name="fly-flame">
+    <div v-if="flyingFlame.visible" class="fixed z-[300] pointer-events-none select-none"
+      :style="{
+        left: flyingFlame.x + 'px',
+        top:  flyingFlame.y + 'px',
+        transform: `translate(-50%,-50%) scale(${flyingFlame.scale}) rotate(${flyingFlame.rotate}deg)`,
+        transition: flyingFlame.animating
+          ? 'left 0.75s cubic-bezier(0.4,0,0.2,1), top 0.75s cubic-bezier(0.4,0,0.2,1), transform 0.75s ease, opacity 0.2s ease'
+          : 'none',
+        opacity: flyingFlame.opacity,
+        fontSize: '28px',
+        lineHeight: 1,
+        filter: 'drop-shadow(0 0 8px #f97316)',
+      }">
+      🔥
     </div>
   </Transition>
 
@@ -4306,9 +4438,9 @@ const navItems = [
 
 // ── Daily Tasks ──
 const dailyTasks = ref([
-  { id: 1, title: '完成今日课程', xp: 30, done: true },
+  { id: 1, title: '完成今日课程', xp: 30, done: false },
   { id: 2, title: '练习 10 道题', xp: 20, done: false },
-  { id: 3, title: '坚持打卡签到', xp: 15, done: true },
+  { id: 3, title: '坚持打卡签到', xp: 15, done: false },
   { id: 4, title: 'AI 预习一门课', xp: 25, done: false },
 ])
 
@@ -4318,6 +4450,95 @@ function completeTask(task) {
     user.xp = Math.min(user.xp + task.xp, user.xpToNext)
   }
 }
+
+// ── 每日任务全量完成判定 ──
+const isDailyTasksAllDone = computed(() =>
+  dailyTasks.value.length > 0 && dailyTasks.value.every(t => t.done)
+)
+
+// 火焰进度百分比
+const flamePercent = computed(() => {
+  const done = dailyTasks.value.filter(t => t.done).length
+  return done / dailyTasks.value.length
+})
+
+// DOM 引用
+const dailyTasksRef  = ref(null)
+const flameSlotRef   = ref(null)
+const headerStreakRef = ref(null)
+
+// 飞行火焰状态
+const flyingFlame = reactive({ visible: false, animating: false, x: 0, y: 0, scale: 1, rotate: 0, opacity: 1 })
+
+// Header 撞击状态
+const streakImpact     = ref(false)
+const streakNumberJump = ref(false)
+const showStreakBubble = ref(false)
+
+const showDailyDoneToast = ref(false)
+let _dailyDoneTriggered = false
+
+watch(isDailyTasksAllDone, (val) => {
+  if (!val || _dailyDoneTriggered) return
+  _dailyDoneTriggered = true
+  user.streak += 1
+
+  // 轻 Toast
+  showDailyDoneToast.value = true
+  setTimeout(() => { showDailyDoneToast.value = false }, 3200)
+
+  // 火焰飞行动画序列
+  nextTick(() => {
+    const src  = flameSlotRef.value?.getBoundingClientRect()
+    const dest = headerStreakRef.value?.getBoundingClientRect()
+    if (!src || !dest) return
+
+    const startX = src.left  + src.width  / 2
+    const startY = src.top   + src.height / 2
+    // target flame emoji center: left edge + px-3(12px) + half-char(9px)
+    const endX   = dest.left + 21
+    const endY   = dest.top  + dest.height / 2
+
+    // 1. 定位到起点，立即显示
+    flyingFlame.x       = startX
+    flyingFlame.y       = startY
+    flyingFlame.scale   = 1.4
+    flyingFlame.rotate  = 0
+    flyingFlame.opacity = 1
+    flyingFlame.animating = false
+    flyingFlame.visible   = true
+
+    // 2. 下一帧开启过渡，飞向目标
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        flyingFlame.animating = true
+        flyingFlame.x       = endX
+        flyingFlame.y       = endY
+        flyingFlame.scale   = 0.6
+        flyingFlame.rotate  = 25
+        flyingFlame.opacity = 0.9
+      })
+    })
+
+    // 3. 飞行结束（0.75s）→ 隐藏 + 触发撞击
+    setTimeout(() => {
+      flyingFlame.visible   = false
+      flyingFlame.animating = false
+
+      // 撞击弹跳
+      streakImpact.value = true
+      setTimeout(() => { streakImpact.value = false }, 700)
+
+      // 数字跳变
+      streakNumberJump.value = true
+      setTimeout(() => { streakNumberJump.value = false }, 600)
+
+      // 打卡气泡
+      showStreakBubble.value = true
+      setTimeout(() => { showStreakBubble.value = false }, 2500)
+    }, 800)
+  })
+})
 
 // ── Leaderboards ──
 const streakLeaderboard = [
@@ -5212,6 +5433,20 @@ function toggleFocusMode() {
 }
 
 // ── Class Auth ──
+// 标记"班级导入"按钮触发的认证，完成后直接弹导入确认框
+let _pendingImport = false
+
+function triggerClassImport() {
+  if (className.value) {
+    // 已认证，直接弹导入框
+    showClassImportModal.value = true
+  } else {
+    // 未认证，先走认证流程，认证完自动弹导入框
+    _pendingImport = true
+    showClassModal.value = true
+  }
+}
+
 function joinClass() {
   if (!classCodeInput.value.trim()) return
   showJoinSuccess.value = true
@@ -5224,9 +5459,11 @@ function joinClass() {
     showJoinSuccess.value = false
     showClassModal.value = false
     classCodeInput.value = ''
-    if (scheduleMode.value === 'empty') {
+    // 无论 scheduleMode，只要有导入意图就弹导入确认框
+    if (_pendingImport || scheduleMode.value === 'empty') {
       showClassImportModal.value = true
     }
+    _pendingImport = false
   }, 1800)
 }
 
@@ -5648,6 +5885,18 @@ body { margin: 0; }
 .toast-up-enter-from   { opacity: 0; transform: translateX(-50%) translateY(16px); }
 .toast-up-leave-to     { opacity: 0; transform: translateX(-50%) translateY(8px); }
 
+/* ── 每日任务完成 Toast（从顶部下滑进入，向上缩回消失） ── */
+.daily-done-toast-enter-active { transition: opacity 0.35s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+.daily-done-toast-leave-active { transition: opacity 0.25s ease, transform 0.25s ease; }
+.daily-done-toast-enter-from   { opacity: 0; transform: translateX(-50%) translateY(-20px) scale(0.94); }
+.daily-done-toast-leave-to     { opacity: 0; transform: translateX(-50%) translateY(-12px) scale(0.96); }
+
+/* 今日课程空/数据态切换 */
+.today-course-enter-active { transition: opacity 0.22s ease, transform 0.25s ease; }
+.today-course-leave-active { transition: opacity 0.15s ease, transform 0.15s ease; }
+.today-course-enter-from   { opacity: 0; transform: translateY(6px); }
+.today-course-leave-to     { opacity: 0; transform: translateY(-4px); }
+
 .focus-enter-active { transition: opacity 0.4s ease, transform 0.4s ease; }
 .focus-leave-active { transition: opacity 0.3s ease, transform 0.3s ease; }
 .focus-enter-from  { opacity: 0; transform: scale(1.03); }
@@ -5698,4 +5947,65 @@ body { margin: 0; }
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ══ 每日任务游戏化动效 ══ */
+
+/* 能量槽光晕脉动 */
+@keyframes flame-glow-pulse {
+  0%,100% { opacity: 0.6; }
+  50%     { opacity: 1; }
+}
+/* 满能瞬间弹跳放大 */
+@keyframes flame-title-pop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.45); filter: drop-shadow(0 0 6px rgba(251,146,60,.7)); }
+  65%  { transform: scale(1.2); }
+  100% { transform: scale(1.15); }
+}
+.flame-title-full {
+  animation: flame-title-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+
+/* 飞行火焰：进/出淡化 */
+.fly-flame-enter-active { transition: opacity 0.15s ease; }
+.fly-flame-leave-active { transition: opacity 0.2s ease; }
+.fly-flame-enter-from,
+.fly-flame-leave-to     { opacity: 0; }
+
+/* Header 火焰撞击弹跳 */
+@keyframes streak-flame-bounce-kf {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.65) rotate(-8deg); }
+  55%  { transform: scale(1.3)  rotate(5deg); }
+  75%  { transform: scale(1.12) rotate(-3deg); }
+  100% { transform: scale(1); }
+}
+.streak-flame-bounce {
+  animation: streak-flame-bounce-kf 0.65s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+
+/* Header 数字跳变（从下向上滚入） */
+@keyframes streak-num-jump-kf {
+  0%   { transform: translateY(120%); opacity: 0; }
+  50%  { transform: translateY(-15%); opacity: 1; }
+  100% { transform: translateY(0);    opacity: 1; }
+}
+.streak-num-jump {
+  animation: streak-num-jump-kf 0.55s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+
+/* Header 撞击光圈 */
+@keyframes streak-ring-kf {
+  0%   { box-shadow: 0 0 0 0   rgba(251,146,60,.6); opacity: 1; }
+  100% { box-shadow: 0 0 0 18px rgba(251,146,60,0); opacity: 0; }
+}
+.streak-impact-ring {
+  animation: streak-ring-kf 0.65s ease-out forwards;
+}
+
+/* 打卡气泡 transition */
+.streak-bubble-enter-active { transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+.streak-bubble-leave-active { transition: opacity 0.25s ease, transform 0.2s ease; }
+.streak-bubble-enter-from   { opacity: 0; transform: translateY(6px) scale(0.92); }
+.streak-bubble-leave-to     { opacity: 0; transform: translateY(-4px) scale(0.95); }
 </style>
