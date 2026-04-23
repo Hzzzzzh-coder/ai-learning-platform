@@ -3940,10 +3940,112 @@
 
   <!-- 智小星 AI 助手 -->
   <ZhiXiaoXing @navigate="handleZxxNavigate" />
+
+  <!-- ══ 全部完成恭喜弹窗 ══ -->
+  <Transition name="alldone">
+    <div v-if="showAllDoneModal"
+      class="fixed inset-0 z-[300] flex items-center justify-center p-6"
+      style="background: rgba(15,10,40,0.5); backdrop-filter: blur(8px);">
+
+      <div class="relative bg-white rounded-[2rem] w-full max-w-[360px] overflow-hidden"
+        style="box-shadow: 0 40px 100px rgba(124,58,237,.22), 0 8px 32px rgba(0,0,0,.10);">
+
+        <!-- 顶部彩虹细线 -->
+        <div class="h-[3px] w-full"
+          style="background: linear-gradient(90deg,#f59e0b 0%,#ef4444 25%,#8b5cf6 55%,#06b6d4 80%,#10b981 100%)"></div>
+
+        <!-- 主体内容 -->
+        <div class="px-7 pt-7 pb-6 flex flex-col items-center text-center gap-6">
+
+          <!-- ① 庆祝图标 -->
+          <div class="relative">
+            <div class="absolute inset-0 rounded-full opacity-30 blur-xl"
+              style="background: radial-gradient(circle,#f59e0b,#8b5cf6,transparent); transform:scale(1.6)"></div>
+            <div class="relative w-[88px] h-[88px] rounded-[1.6rem] flex items-center justify-center select-none"
+              style="background:linear-gradient(135deg,#ede9fe 0%,#fef3c7 100%);border:1.5px solid rgba(139,92,246,.14)">
+              <span class="text-[44px] alldone-bounce">🎉</span>
+            </div>
+            <span class="absolute -top-1.5 -right-2 text-lg alldone-float" style="animation-delay:.1s">✨</span>
+            <span class="absolute -top-1   -left-3  text-base alldone-float" style="animation-delay:.35s">🌟</span>
+            <span class="absolute -bottom-1 -right-3 text-base alldone-float" style="animation-delay:.2s">🎊</span>
+          </div>
+
+          <!-- ② 标题 & 寄语 -->
+          <div class="space-y-1.5">
+            <h2 class="text-[1.18rem] font-black text-slate-800 leading-snug">
+              恭喜！今天的任务<br/>已全部圆满完成！
+            </h2>
+            <p class="text-[13px] text-slate-400 leading-relaxed">
+              你真棒！现在可以放下书本，去好好休息或运动一下啦 💪
+            </p>
+          </div>
+
+<!-- ③ 轻量统计行（从左到右依次淡入） -->
+<div class="flex items-center justify-center gap-2 w-full py-1">
+
+  <!-- A. 完成项计数（缩小版） -->
+  <div class="inline-flex items-center gap-1 alldone-stat px-2 py-1 rounded-2xl whitespace-nowrap"
+    style="background:#eff6ff; border:1.5px solid #bfdbfe; animation-delay:.15s">
+    <svg class="w-3 h-3 flex-shrink-0" style="color:#3b82f6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"
+        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <span class="text-[11px] font-bold whitespace-nowrap" style="color:#1d4ed8">
+      已完成 {{ todayHomework.length }} 项
+    </span>
+  </div>
+
+  <!-- 分隔点 -->
+  <span class="w-1 h-1 rounded-full bg-slate-200 flex-shrink-0"></span>
+
+  <!-- B. XP 胶囊勋章（横向长条版，不换行） -->
+  <div class="alldone-stat flex-shrink-0" style="animation-delay:.3s">
+     <span class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-white text-[12px] font-black tracking-wide whitespace-nowrap"
+      style="background:linear-gradient(135deg,#8b5cf6,#6366f1);
+             box-shadow:0 2px 8px rgba(139,92,246,.35);">
+      ⚡ +{{ todayHomework.reduce((s,h)=>s+h.xp,0) }} XP
+    </span>
+  </div>
+
+  <!-- 分隔点 -->
+  <span class="w-1 h-1 rounded-full bg-slate-200 flex-shrink-0"></span>
+
+  <!-- C. 班级荣誉角标（缩小版） -->
+  <div class="flex items-center gap-1 alldone-stat" style="animation-delay:.45s">
+    <!-- 皇冠图标 -->
+    <svg class="w-3 h-3 flex-shrink-0" style="color:#d97706" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M3 17l3-8 4 5 3-9 4 9 3-6v8H3z" opacity=".15"/>
+      <path d="M2 19h20v2H2zM3 11l3 6h12l3-6-4.5 2.5L12 5l-4.5 8.5L3 11z"/>
+    </svg>
+    <div class="flex flex-col items-center leading-none px-2 py-1 rounded-xl"
+      style="background:#fff7ed; border:1px solid #fed7aa;">
+      <span class="text-[8px] font-bold text-orange-400 tracking-wide">班级排名</span>
+      <span class="text-[13px] font-black text-orange-600 leading-tight mt-0.5">
+        {{ classProgressCount }}/{{ classProgressTotal }}
+      </span>
+    </div>
+  </div>
+</div>
+          <!-- ④ 按钮 -->
+          <button @click="showAllDoneModal = false"
+            class="px-10 py-3 rounded-2xl text-[13px] font-black text-white transition-all
+                   active:scale-95 hover:shadow-lg hover:shadow-violet-200/60"
+            style="background:linear-gradient(135deg,#7c3aed,#a855f7)">
+            我知道了，去休息啦 🎈
+          </button>
+        </div>
+
+        <!-- 底部小字 -->
+        <p class="text-center text-[10px] text-slate-300 pb-4 -mt-2">
+          今日学习数据已同步至班级系统
+        </p>
+      </div>
+    </div>
+  </Transition>
 </template>
 
 <script setup>
-import { ref, computed, reactive, nextTick } from 'vue'
+import { ref, computed, reactive, nextTick, watch } from 'vue'
 import ZhiXiaoXing from './components/ZhiXiaoXing.vue'
 
 // ── State ──
@@ -5281,7 +5383,7 @@ const todayHomework = ref([
     title: '近代史大事年表默写', count: 15, deadline: '明日 08:00', submitted: false,
     difficulty: 1, estimatedMin: 10, xp: 15, urgent: false,
     tags: ['近代史', '时间轴', '事件'],
-    status: 'todo',
+    status: 'completed',
   },
 ])
 
@@ -5327,13 +5429,35 @@ function generateAIPrediction() {
 
 const classProgressCount = ref(12)
 const classProgressTotal = ref(56)
-const classHeroes = [
+const classHeroes = ref([
   { name: '陈子涵', avatar: '陈', color: 'bg-violet-400' },
   { name: '王梓轩', avatar: '王', color: 'bg-blue-400' },
   { name: '赵嘉怡', avatar: '赵', color: 'bg-emerald-400' },
   { name: '李晨曦', avatar: '李', color: 'bg-amber-400' },
   { name: '张思远', avatar: '张', color: 'bg-rose-400' },
-]
+])
+
+// ── 全部完成判定 ──
+const showAllDoneModal = ref(false)
+let _allDoneTriggered = false  // 只触发一次
+
+const isAllTasksCompleted = computed(() =>
+  todayHomework.value.length > 0 &&
+  todayHomework.value.every(h => h.status === 'completed')
+)
+
+watch(isAllTasksCompleted, (val) => {
+  if (!val || _allDoneTriggered) return
+  _allDoneTriggered = true
+  // 延迟 400ms 让提交按钮动画先完成
+  setTimeout(() => {
+    showAllDoneModal.value = true
+    // 班级进度 +1
+    classProgressCount.value += 1
+    // 将自己推入学霸榜
+    classHeroes.value.push({ name: '林小萱', avatar: '林', color: 'bg-violet-500', isMe: true })
+  }, 400)
+})
 const classTeacher = {
   name: '李明华老师',
   title: '班主任 · 数学',
@@ -5475,6 +5599,31 @@ body { margin: 0; }
 
 /* ── 社群消息进入动画 ── */
 .comm-msg-enter-active { transition: all 0.25s ease; }
+
+/* ── 全部完成弹窗 ── */
+.alldone-enter-active { transition: all .4s cubic-bezier(.34,1.56,.64,1); }
+.alldone-leave-active { transition: all .22s ease-in; }
+.alldone-enter-from  { opacity: 0; }
+.alldone-leave-to    { opacity: 0; }
+.alldone-enter-from > div { transform: scale(.72) translateY(40px); }
+.alldone-enter-active > div { transition: transform .4s cubic-bezier(.34,1.56,.64,1); }
+
+@keyframes alldone-bounce {
+  0%,100% { transform: translateY(0) scale(1); }
+  30%     { transform: translateY(-12px) scale(1.1); }
+  60%     { transform: translateY(-5px)  scale(1.05); }
+}
+@keyframes alldone-float {
+  0%,100% { transform: translateY(0)   rotate(0deg); }
+  50%     { transform: translateY(-6px) rotate(12deg); }
+}
+.alldone-bounce { display: inline-block; animation: alldone-bounce 1.2s ease-in-out 0.2s both; }
+.alldone-float  { display: inline-block; animation: alldone-float  2s  ease-in-out infinite; }
+@keyframes alldone-stat-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.alldone-stat { animation: alldone-stat-in 0.35s cubic-bezier(.34,1.56,.64,1) both; }
 .comm-msg-enter-from { opacity: 0; transform: translateY(10px); }
 .comm-msg-leave-active { transition: all 0.15s ease; }
 .comm-msg-leave-to { opacity: 0; }
