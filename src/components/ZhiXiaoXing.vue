@@ -1,5 +1,7 @@
 <template>
-  <div class="zxx-root">
+  <div class="zxx-root"
+    :class="{ 'zxx-root--dragging': isDragging }"
+    :style="{ left: posX + 'px', top: posY + 'px' }">
 
     <!-- ══ STATE 1: FAB 悬浮机器人 ══ -->
     <Transition name="zxx-fab">
@@ -7,7 +9,7 @@
         class="zxx-fab-wrap"
         @mouseenter="robotHover = true"
         @mouseleave="robotHover = false"
-        @click="openMiniChat">
+        @mousedown="onFabDown">
 
         <!-- 气泡（横向，在机器人左侧） -->
         <Transition name="zxx-bubble">
@@ -25,7 +27,8 @@
           </div>
         </Transition>
 
-        <div class="zxx-robot" :class="robotHover ? 'zxx-robot--hover' : ''">
+        <div class="zxx-robot"
+          :class="[robotHover && !isDragging ? 'zxx-robot--hover' : '', isDragging ? 'zxx-robot--drag' : '']">
           <img src="/robot.png" class="w-16 h-16 object-contain" />
           <span class="zxx-online-dot"></span>
         </div>
@@ -279,6 +282,53 @@ function closeMiniChat()  { showMiniChat.value = false }
 function enterFullscreen() { showMiniChat.value = false; isFullscreen.value = true }
 function exitFullscreen()  { isFullscreen.value = false }
 
+// ── 自由拖拽 ──
+const FAB_W = 68
+const FAB_H = 68
+const posX = ref(0)
+const posY = ref(0)
+const isDragging = ref(false)
+
+let _startCX = 0, _startCY = 0   // mousedown 时的鼠标 clientX/Y
+let _startPX = 0, _startPY = 0   // mousedown 时元素的 left/top
+let _moved   = false               // 是否超过 5px 阈值
+
+function onFabDown(e) {
+  if (showMiniChat.value || isFullscreen.value) return
+  e.preventDefault()
+  _startCX = e.clientX
+  _startCY = e.clientY
+  _startPX = posX.value
+  _startPY = posY.value
+  _moved   = false
+  window.addEventListener('mousemove', onDragMove)
+  window.addEventListener('mouseup',   onDragUp)
+}
+
+function onDragMove(e) {
+  const dx = e.clientX - _startCX
+  const dy = e.clientY - _startCY
+  if (!_moved && Math.hypot(dx, dy) < 5) return
+  _moved = true
+  isDragging.value = true
+  posX.value = Math.max(0, Math.min(_startPX + dx, window.innerWidth  - FAB_W))
+  posY.value = Math.max(0, Math.min(_startPY + dy, window.innerHeight - FAB_H))
+}
+
+function onDragUp() {
+  window.removeEventListener('mousemove', onDragMove)
+  window.removeEventListener('mouseup',   onDragUp)
+  const wasClick   = !_moved
+  isDragging.value = false
+  _moved           = false
+  if (wasClick) openMiniChat()
+}
+
+function initPos() {
+  posX.value = window.innerWidth  - 28 - FAB_W
+  posY.value = window.innerHeight - 28 - FAB_H
+}
+
 // ── 气泡逻辑 ──
 const bubbleTexts = [
   '今天学了什么？来考考我吧 🎯',
@@ -415,6 +465,7 @@ const historyList = [
 
 // ── 生命周期 ──
 onMounted(() => {
+  initPos()
   setTimeout(showNextBubble, 2000)
   bubbleTimer = setInterval(() => {
     bubbleVisible.value = false
@@ -427,12 +478,22 @@ onUnmounted(() => {
   clearInterval(bubbleTimer)
   clearTimeout(bubbleHideTimer)
   clearTimeout(fsBubbleTimer)
+  window.removeEventListener('mousemove', onDragMove)
+  window.removeEventListener('mouseup',   onDragUp)
 })
 </script>
 
 <style scoped>
 /* ── Root ── */
-.zxx-root { position: fixed; bottom: 28px; right: 28px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.zxx-root {
+  position: fixed;
+  z-index: 9999;
+  width: 68px;
+  height: 68px;
+  /* left / top driven by JS posX / posY */
+  user-select: none;
+}
+.zxx-root--dragging { cursor: grabbing; }
 
 /* ══ FAB 机器人 ══ */
 .zxx-fab-wrap {
@@ -448,6 +509,14 @@ onUnmounted(() => {
   transition: filter .2s, transform .15s;
 }
 .zxx-robot--hover { transform: scale(1.06); filter: drop-shadow(0 10px 24px rgba(124,58,237,.6)); }
+.zxx-robot--drag  {
+  animation-play-state: paused;
+  transform: scale(0.93) !important;
+  opacity: 0.82;
+  filter: drop-shadow(0 8px 20px rgba(124,58,237,.55)) !important;
+  transition: transform .08s, opacity .08s !important;
+  cursor: grabbing;
+}
 .zxx-online-dot {
   position: absolute; bottom: 6px; right: 4px;
   width: 10px; height: 10px; border-radius: 50%;
@@ -486,6 +555,9 @@ onUnmounted(() => {
 
 /* ══ 迷你对话窗 ══ */
 .zxx-mini-panel {
+  position: absolute;
+  bottom: calc(100% + 10px); /* 锚定在机器人上方 10px */
+  right: 0;
   width: 320px; height: 420px;
   background: rgba(255,255,255,.92);
   backdrop-filter: blur(20px) saturate(160%);
@@ -494,7 +566,6 @@ onUnmounted(() => {
   border-radius: 22px;
   box-shadow: 0 20px 60px rgba(124,58,237,.15), 0 4px 16px rgba(0,0,0,.08);
   display: flex; flex-direction: column; overflow: hidden;
-  position: relative;
 }
 .zxx-mini-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -814,8 +885,8 @@ onUnmounted(() => {
 
 .zxx-mini-chat-enter-active { transition: all .32s cubic-bezier(.34,1.56,.64,1); }
 .zxx-mini-chat-leave-active { transition: all .2s ease-in; }
-.zxx-mini-chat-enter-from { opacity:0; transform:scale(.85) translateY(16px); transform-origin:bottom right; }
-.zxx-mini-chat-leave-to  { opacity:0; transform:scale(.9)  translateY(10px); transform-origin:bottom right; }
+.zxx-mini-chat-enter-from { opacity:0; transform:scale(.85) translateY(20px); transform-origin:bottom right; }
+.zxx-mini-chat-leave-to  { opacity:0; transform:scale(.9)  translateY(16px); transform-origin:bottom right; }
 
 .zxx-fs-enter-active { transition: all .45s cubic-bezier(.16,1,.3,1); }
 .zxx-fs-leave-active { transition: all .3s cubic-bezier(.7,0,.84,0); }

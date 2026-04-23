@@ -1229,6 +1229,7 @@
 
                   <!-- AI 靶向补弱入口 -->
                   <div v-if="examScore < 100"
+                    @click="switchView('courses')"
                     class="mt-3 flex items-center gap-2.5 bg-amber-50 border border-amber-100
                            rounded-2xl px-4 py-2.5 cursor-pointer hover:bg-amber-100 transition-colors group">
                     <span class="text-sm flex-shrink-0">🎯</span>
@@ -3034,6 +3035,46 @@
         <div v-else-if="currentView === 'community'"
           class="flex flex-1 overflow-hidden min-h-0">
 
+          <!-- ══ 未加入班级：空状态 ══ -->
+          <div v-if="!className"
+            class="flex-1 flex flex-col items-center justify-center text-center gap-7 p-8">
+            <div class="relative">
+              <!-- 光晕装饰 -->
+              <div class="absolute inset-0 rounded-3xl bg-violet-400/15 blur-2xl scale-110"></div>
+              <div class="relative w-36 h-36 rounded-3xl bg-gradient-to-br from-violet-100 to-purple-200
+                          flex items-center justify-center shadow-sm">
+                <span class="text-7xl select-none">💬</span>
+              </div>
+            </div>
+            <div class="max-w-xs">
+              <h2 class="text-xl font-black text-slate-800 mb-2">还未加入班级</h2>
+              <p class="text-sm text-slate-400 leading-relaxed">
+                加入班级后即可进入班级社群，与老师和同学实时互动、讨论作业与学习心得
+              </p>
+            </div>
+            <!-- 功能亮点 -->
+            <div class="flex items-center gap-3">
+              <div v-for="item in [
+                  { icon: '👨‍🏫', label: '老师答疑' },
+                  { icon: '📢', label: '班级公告' },
+                  { icon: '💬', label: '同学交流' },
+                ]" :key="item.label"
+                class="flex flex-col items-center gap-1.5 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-100">
+                <span class="text-2xl">{{ item.icon }}</span>
+                <p class="text-[11px] font-bold text-slate-500">{{ item.label }}</p>
+              </div>
+            </div>
+            <button @click="showClassModal = true"
+              class="px-8 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white text-sm font-black
+                     rounded-2xl shadow-md shadow-violet-200 hover:shadow-lg hover:shadow-violet-300/60
+                     active:scale-95 transition-all">
+              立即加入班级
+            </button>
+          </div>
+
+          <!-- ══ 已加入班级：聊天室 ══ -->
+          <template v-else>
+
           <!-- ── 左侧：成员列表 (25%) ── -->
           <div class="w-64 flex-shrink-0 border-r border-slate-100 flex flex-col bg-white"
             style="min-height: 0;">
@@ -3334,61 +3375,14 @@
             </div>
 
           </div>
+
+          </template><!-- end 已加入班级 -->
         </div>
 
       </main>
 
       <!-- ── Right Sidebar ── -->
       <aside class="w-64 flex-shrink-0 bg-white border-l border-slate-100 flex flex-col overflow-y-auto p-4 gap-5" style="scrollbar-width: none; -ms-overflow-style: none;">
-
-        <!-- 班级社群快捷入口 -->
-        <div @click="switchView('community')"
-          class="rounded-2xl overflow-hidden cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md"
-          style="background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%); border: 1px solid rgba(139,92,246,0.18);">
-          <div class="px-4 py-3.5">
-            <div class="flex items-center gap-2.5 mb-2.5">
-              <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600
-                          flex items-center justify-center text-white text-xs font-black shadow-sm shadow-violet-200 flex-shrink-0">
-                班
-              </div>
-              <div>
-                <p class="text-xs font-black text-violet-800">班级社群</p>
-                <p class="text-[10px] text-violet-500">初三(6)班</p>
-              </div>
-            </div>
-            <!-- 在线成员头像堆叠 -->
-            <div class="flex items-center gap-2">
-              <div class="flex items-center">
-                <div v-for="(m, i) in communityMembers.filter(m => m.online).slice(0, 4)" :key="m.id"
-                  class="w-6 h-6 rounded-full border-2 border-white/80 flex items-center justify-center text-white text-[9px] font-black"
-                  :class="m.role === 'teacher'
-                    ? 'bg-gradient-to-br from-violet-500 to-purple-600'
-                    : 'bg-gradient-to-br from-slate-300 to-slate-400'"
-                  :style="{ marginLeft: i === 0 ? '0' : '-6px', zIndex: 10 - i }">
-                  {{ m.avatar }}
-                </div>
-              </div>
-              <div class="flex items-center gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                <p class="text-[10px] text-violet-600 font-semibold">
-                  {{ communityMembers.filter(m => m.online).length }} 人在线
-                </p>
-              </div>
-            </div>
-          </div>
-          <div class="flex items-center justify-between px-4 py-2"
-            style="background: rgba(124,58,237,0.12);">
-            <p class="text-[10px] text-violet-700 font-black">进入班级群</p>
-            <div class="flex items-center gap-1.5">
-              <span class="text-[9px] bg-violet-500 text-white px-1.5 py-0.5 rounded-full font-black leading-none">
-                {{ communityMessages.length }}条
-              </span>
-              <svg class="w-3 h-3 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
-              </svg>
-            </div>
-          </div>
-        </div>
 
         <!-- Daily Tasks -->
         <div>
